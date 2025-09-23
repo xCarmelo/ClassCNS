@@ -1,0 +1,19 @@
+2025-09-23 00:54:21 Excepción general: SQLSTATE[23000]: Integrity constraint violation: 1062 Duplicate entry '0' for key 'PRIMARY'
+2025-09-23 00:55:58 Guardado OK: student=495, criterio=7, nota=5, cual=AA, método=saveOrUpdate
+2025-09-23 00:56:01 Guardado OK: student=495, criterio=8, nota=10, cual=AA, método=saveOrUpdate
+2025-09-23 00:56:09 Guardado OK: student=496, criterio=6, nota=5, cual=AA, método=saveOrUpdate
+2025-09-23 00:56:10 Guardado OK: student=496, criterio=7, nota=5, cual=AA, método=saveOrUpdate
+2025-09-23 00:56:11 Guardado OK: student=496, criterio=8, nota=10, cual=AA, método=saveOrUpdate
+2025-09-23 01:28:47 Guardado OK: student=495, criterio=9, nota=5, cual=AA, método=saveOrUpdate
+2025-09-23 01:28:48 Guardado OK: student=495, criterio=10, nota=5, cual=AA, método=saveOrUpdate
+2025-09-23 01:28:49 Guardado OK: student=495, criterio=11, nota=10, cual=AA, método=saveOrUpdate
+2025-09-23 01:28:51 Guardado OK: student=495, criterio=12, nota=5, cual=AA, método=saveOrUpdate
+2025-09-23 01:28:52 Guardado OK: student=495, criterio=13, nota=5, cual=AA, método=saveOrUpdate
+2025-09-23 01:28:53 Guardado OK: student=495, criterio=14, nota=10, cual=AA, método=saveOrUpdate
+2025-09-23 01:28:54 Guardado OK: student=495, criterio=18, nota=5, cual=AA, método=saveOrUpdate
+2025-09-23 01:28:55 Guardado OK: student=495, criterio=19, nota=5, cual=AA, método=saveOrUpdate
+2025-09-23 01:28:56 Guardado OK: student=495, criterio=20, nota=10, cual=AA, método=saveOrUpdate
+2025-09-23 01:29:05 Guardado OK: student=495, criterio=6, nota=5, cual=AA, método=saveOrUpdate
+2025-09-23 01:30:25 Guardado OK: student=495, criterio=15, nota=5, cual=AA, método=saveOrUpdate
+2025-09-23 01:30:26 Guardado OK: student=495, criterio=16, nota=5, cual=AA, método=saveOrUpdate
+2025-09-23 01:30:27 Guardado OK: student=495, criterio=17, nota=10, cual=AA, método=saveOrUpdate

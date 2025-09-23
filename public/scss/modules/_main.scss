@@ -1,0 +1,131 @@
+@use "../base/colors.scss" as c;
+
+.container-primary {
+  .main-container {
+    width: 100%;
+    max-width: 320px;
+    background: c.$dark-coffy;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: space-between;
+
+    &__header {
+      margin-top: 1em;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      text-align: center;
+    }
+
+    &__logo {
+      background-color: c.$white-color;
+      width: 9em;
+      height: 9em;
+      border-radius: 50%;
+      overflow: hidden;
+      box-shadow: 0 0  50px 8px white;
+      display: flex;
+      justify-content: center;
+      align-items: center;
+    }
+
+    &__logo-img {
+      width: 100%;
+      height: auto;
+    }
+
+    &__title {
+      color: c.$primary-colors;
+      margin-top: 1em;
+      font-size: 1.2em;
+      text-shadow: 2px 2px 10px c.$white-color;
+    }
+
+    &__link-container {
+      background-color: c.$background-opacity;
+      margin: 0;
+      margin-top: 2em;
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      justify-content: center;
+      gap: 1em;
+      width: 90%;
+      padding: 2em 1em 60% 1em;
+      border-radius: 1em;
+
+    }
+
+    &__link-item {
+      width: 100%;
+      background-color: c.$color-button;
+      border-radius: 10px;
+      transition: transform 0.3s ease;
+
+      &:hover {
+        transform: scale(1.05);
+      }
+    }
+
+    &__link {
+      width: 100%;
+      padding: 0.75em;
+      display: flex;
+      align-items: center;
+      justify-content: flex-start;
+      gap: 0.7em;
+      font-size: 1em;
+      color: c.$white-color;
+      text-decoration: none;
+      transition: background-color 0.3s ease;
+      text-shadow: 2px 1px 19px c.$white-color;
+
+      i {
+        font-size: 1.3em;
+      }
+
+      &:hover {
+        background-color: c.$color-button-hover;
+      }
+    }
+
+    .footer {
+      margin-top: auto;
+      padding-bottom: 1.5em;
+      display: flex;
+      justify-content: center;
+      width: 100%;
+
+      &__exit {
+        width: 3.5em;
+        height: 3.5em;
+        border-radius: 50%;
+        background-color: c.$color-button;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        color: white;
+        font-size: 1.5em;
+        box-shadow: 0 0 15px white;
+        transition: transform 0.3s ease;
+
+        &:hover {
+          transform: scale(1.1);
+          background-color: c.$color-button-hover;
+        }
+
+        &-icon {
+          color: c.$white-color;
+        }
+      }
+    }
+  }
+}
+
+@media (min-width: 1400px) {
+    .container, .container-lg, .container-md, .container-sm, .container-xl, .container-xxl {
+        max-width: 100%;
+    }
+}
