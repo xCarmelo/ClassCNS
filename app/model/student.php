@@ -5,6 +5,7 @@ class Student {
     public int $id;
     public string $name; 
     public int $idSeccion;
+    public $status;
 
     public static $pdo;
     public static $table;
@@ -33,7 +34,7 @@ public function getAllStudents() {
 
 # app/model/student.php
 public function getBySeccion($idSeccion) {
-    $sql = "SELECT * FROM student WHERE idSeccion = :idSeccion";
+    $sql = "SELECT * FROM student WHERE idSeccion = :idSeccion ORDER BY NumerodeLista ASC";
     $stmt = self::$pdo->prepare($sql);
     $stmt->execute([':idSeccion' => $idSeccion]);
     return $stmt->fetchAll(PDO::FETCH_ASSOC);

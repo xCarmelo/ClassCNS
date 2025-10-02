@@ -50,19 +50,24 @@
                 </tr>
             </thead>
             <tbody>
-                <?php foreach ($estudiantes as $est): ?>
-                <tr class="fila-estudiante">
-                    <td><?= htmlspecialchars($est['name']) ?></td>
-                    <td>
-                        <select name="tipo_asistencia[<?= $est['id'] ?>]" class="form-control tipo-asistencia-select">
-                            <option value="">...</option>
-                            <?php foreach ($tiposAsistencia as $tipoA): ?>
-                                <option value="<?= htmlspecialchars($tipoA['id']) ?>"><?= htmlspecialchars($tipoA['name']) ?></option>
-                            <?php endforeach; ?>
-                        </select>
-                    </td>
-                </tr>
-                <?php endforeach; ?>
+                <?php
+                foreach ($estudiantes as $est) {
+                    echo '<tr class="fila-estudiante' . ((!empty($est['fin']) && intval($est['fin']) === 1) ? ' table-danger' : '') . '">';
+                    echo '<td>' . htmlspecialchars($est['name']) . '</td>';
+                    echo '<td>';
+                    echo '<select name="tipo_asistencia[' . $est['id'] . ']" class="form-control tipo-asistencia-select">';
+                    echo '<option value="">...</option>';
+                    foreach ($tiposAsistencia as $tipoA) {
+                        echo '<option value="' . htmlspecialchars($tipoA['id']) . '">' . htmlspecialchars($tipoA['name']) . '</option>';
+                    }
+                    echo '</select>';
+                    echo '</td>';
+                    echo '</tr>';
+                    if (!empty($est['fin']) && intval($est['fin']) === 1) {
+                        break;
+                    }
+                }
+                ?>
             </tbody>
         </table>
         <button type="submit" class="btn btn-success mb-3">Guardar</button>
