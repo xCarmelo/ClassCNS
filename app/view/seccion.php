@@ -45,6 +45,7 @@
         <?php endif; ?>
       </tbody>
     </table>
+    <div id="pagination" class="d-flex justify-content-center mt-3"></div>
   </div>
 </div>
 
@@ -136,14 +137,63 @@ if (isset($_SESSION['status'])):
     modal.show();
   }
 
-  // Buscador por nombre
-  document.getElementById('buscador').addEventListener('keyup', function () {
-    const texto = this.value.toLowerCase();
-    document.querySelectorAll('#tablaSecciones tbody tr').forEach(tr => {
-      const nombre = tr.querySelector('.nombre').textContent.toLowerCase();
-      tr.style.display = nombre.includes(texto) ? '' : 'none';
+  // Buscador por nombre y paginación
+  const buscador = document.getElementById('buscador');
+  const tabla = document.getElementById('tablaSecciones');
+  const tbody = tabla.querySelector('tbody');
+  const pagination = document.getElementById('pagination');
+  let rows = Array.from(tbody.querySelectorAll('tr'));
+  let filteredRows = rows;
+  let currentPage = 1;
+  const rowsPerPage = 10;
+
+  function renderPage(page) {
+    currentPage = page;
+    filteredRows.forEach((row, i) => {
+      row.style.display = (i >= (page-1)*rowsPerPage && i < page*rowsPerPage) ? '' : 'none';
     });
-  });
+    rows.filter(r => !filteredRows.includes(r)).forEach(r => r.style.display = 'none');
+    renderPagination();
+  }
+
+  function renderPagination() {
+    pagination.innerHTML = '';
+    const totalPages = Math.ceil(filteredRows.length / rowsPerPage);
+    if (totalPages <= 1) return;
+    const ul = document.createElement('ul');
+    ul.className = 'pagination';
+    for (let i=1; i<=totalPages; i++) {
+      const li = document.createElement('li');
+      li.className = 'page-item ' + (i===currentPage ? 'active' : '');
+      const a = document.createElement('a');
+      a.className = 'page-link';
+      a.href = '#';
+      a.textContent = i;
+      a.addEventListener('click', (e) => {
+        e.preventDefault();
+        renderPage(i);
+      });
+      li.appendChild(a);
+      ul.appendChild(li);
+    }
+    pagination.appendChild(ul);
+  }
+
+  function filtrarPorNombre() {
+    const texto = buscador.value.trim().toLowerCase();
+    if (!texto) {
+      filteredRows = rows;
+    } else {
+      filteredRows = rows.filter(row => {
+        const nombreTd = row.querySelector('.nombre');
+        return nombreTd && nombreTd.textContent.toLowerCase().includes(texto);
+      });
+    }
+    renderPage(1);
+  }
+
+  buscador.addEventListener('input', filtrarPorNombre);
+  renderPage(1);
 
   // Cargar datos en modal editar
   document.querySelectorAll('.btn-editar').forEach(btn => {

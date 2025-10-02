@@ -9,7 +9,7 @@ html{
     margin: 0;
     padding: 0;
     box-sizing: border-box;
-    font-size: 100%;
+    font-size: 85%;
 }
 
 body{
@@ -46,4 +46,14 @@ img{
 
 .py-4{
     background-color: c.$background-table;
+}
+
+
+select.form-select,
+select {
+  appearance: none;
+  -webkit-appearance: none;
+  -moz-appearance: none;
+  background-image: none !important;
+  width: fit-content
 }

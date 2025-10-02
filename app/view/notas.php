@@ -1,7 +1,124 @@
 <?php require_once "../view/header.php"; ?>
 
-<div class="container mt-4">
-    <h3>Calificaciones</h3>
+<style>
+/* Columnas de criterios más angostas y tooltip */
+th.criterio-celda, td[data-puntos] {
+    min-width: 40px;
+    max-width: 60px;
+    width: 1%;
+    padding-left: 2px;
+    padding-right: 2px;
+    text-align: center;
+    position: relative;
+}
+.criterio-celda .criterio-tooltip {
+    display: none;
+    position: absolute;
+    left: 50%;
+    top: 100%;
+    transform: translateX(-50%);
+    background: #222;
+    color: #fff;
+    padding: 4px 12px;
+    border-radius: 6px;
+    white-space: nowrap;
+    font-size: 0.95em;
+    z-index: 10;
+    margin-top: 2px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+}
+.criterio-celda:hover .criterio-tooltip {
+    display: block;
+}
+/* Selects de calificación más pequeños y tipo caja de texto */
+.select-qual {
+    font-size: 0.85em !important;
+    height: 1.7em !important;
+    padding: 0 0.3em !important;
+    border: 1px solid #bbb !important;
+    border-radius: 4px !important;
+    background: #fff !important;
+    box-shadow: none !important;
+    min-width: 3.5em;
+    max-width: 5em;
+    appearance: none;
+    -webkit-appearance: none;
+    -moz-appearance: none;
+    text-align: center;
+    margin: 0 auto;
+    display: block;
+}
+.select-qual:focus {
+    outline: 1.5px solid #4c82ef;
+    border-color: #4c82ef;
+}
+.indicador-celda {
+    max-width: 110px;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    position: relative;
+    cursor: pointer;
+}
+.indicador-tooltip {
+    display: none;
+    position: absolute;
+    left: 50%;
+    top: 100%;
+    transform: translateX(-50%);
+    background: #222;
+    color: #fff;
+    padding: 4px 12px;
+    border-radius: 6px;
+    white-space: pre-line;
+    font-size: 0.95em;
+    z-index: 10;
+    margin-top: 2px;
+    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    min-width: 120px;
+    max-width: 350px;
+    text-align: left;
+}
+.indicador-celda:hover .indicador-tooltip {
+    display: block;
+}
+</style>
+
+<div class="container-fluid mt-4">
+
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h3>Calificaciones</h3>
+        <button id="btnExportarNotas" class="btn btn-success"><i class="bi bi-file-earmark-excel"></i> Exportar Notas</button>
+    </div>
+
+    <script>
+    // Encabezados completos para exportar (generados en PHP)
+    window.EXPORT_NOTAS_HEADERS = [
+        'Nombre del Estudiante',
+        <?php
+        // Generar encabezados: por cada indicador, por cada criterio
+        $headers = [];
+        foreach ($indicadores as $ind) {
+            $indName = str_replace("'", "\'", $ind['name']);
+            $lista = $criterios[$ind['id']] ?? [];
+            $maxC = max(3, count($lista));
+            for ($j = 0; $j < $maxC; $j++) {
+                $c = $lista[$j] ?? null;
+                if ($c) {
+                    $critName = str_replace("'", "\'", $c['name'] ?? $c['descripcion'] ?? '');
+                    $puntos = isset($c['puntos']) ? $c['puntos'] : (isset($c['puntaje']) ? $c['puntaje'] : 0);
+                    $headers[] = "'{$indName} - {$critName} ({$puntos})'";
+                } else {
+                    $headers[] = "'-'";
+                }
+            }
+        }
+        echo implode(",\n        ", $headers);
+        ?>,
+        'Total Numérico',
+        'Cualitativa'
+    ];
+    </script>
 
     <!-- Filtros -->
     <form id="filtrosForm" method="GET" action="">
@@ -57,10 +174,23 @@
         <div class="alert alert-info">Seleccione los 4 filtros (Sección, Materia, Año y Corte) para ver la tabla.</div>
     <?php else: ?>
 
-    <!-- Filtro de búsqueda por nombre -->
+    <!-- Filtro de búsqueda por nombre y checkboxes de columnas -->
     <div class="row mb-2">
-        <div class="col-md-4">
+        <div class="col-md-4 mb-2">
             <input type="text" id="filtroNombre" class="form-control" placeholder="Buscar por nombre de estudiante...">
+        </div>
+        <div class="col-md-8 d-flex align-items-center flex-wrap" id="columnToggles">
+            <?php if (!empty($indicadores)): ?>
+                <?php foreach ($indicadores as $i => $ind): ?>
+                    <div class="form-check me-3">
+                        <input class="form-check-input toggle-col" type="checkbox" id="toggleInd<?= $i ?>" data-colgroup="ind<?= $i ?>" checked>
+                        <label class="form-check-label" for="toggleInd<?= $i ?>">
+                            <?= htmlspecialchars(mb_strimwidth($ind['name'], 0, 10, '...')) ?>
+                        </label>
+                    </div>
+                <?php endforeach; ?>
+                
+            <?php endif; ?>
         </div>
     </div>
     <div class="table-responsive">
@@ -68,24 +198,35 @@
             <thead class="table-dark">
                 <tr>
                     <th rowspan="2">Nombre del Estudiante</th>
-                    <?php foreach ($indicadores as $ind):
+                    <?php foreach ($indicadores as $i => $ind):
                         $numC = max(3, count($criterios[$ind['id']] ?? []));
-                        ?>
-                        <th colspan="<?= $numC ?>"><?= htmlspecialchars($ind['name']) ?></th>
+                        $nombreInd = htmlspecialchars($ind['name']);
+                        $corto = mb_strimwidth($nombreInd, 0, 13, '...');
+                    ?>
+                        <th colspan="<?= $numC ?>" class="indicador-celda col-ind<?= $i ?>">
+                            <?= $corto ?>
+                            <?php if (mb_strlen($nombreInd) > 13): ?>
+                                <span class="indicador-tooltip"><?= $nombreInd ?></span>
+                            <?php endif; ?>
+                        </th>
                     <?php endforeach; ?>
                     <th rowspan="2">Total Numérico</th>
                     <th rowspan="2">Cualitativa</th>
                 </tr>
 
                 <tr>
-                    <?php foreach ($indicadores as $ind):
+                    <?php foreach ($indicadores as $i => $ind):
                         $lista = $criterios[$ind['id']] ?? [];
-                        for ($i = 0; $i < max(3, count($lista)); $i++):
-                            $c = $lista[$i] ?? null;
+                        for ($j = 0; $j < max(3, count($lista)); $j++):
+                            $c = $lista[$j] ?? null;
                     ?>
-                        <th class="criterio-celda" data-descr="<?= isset($c) ? htmlspecialchars($c['name'] ?? $c['descripcion'] ?? '') : '' ?>" data-puntos="<?= isset($c) ? (int)(isset($c['puntos']) ? $c['puntos'] : (isset($c['puntaje']) ? $c['puntaje'] : 0)) : '' ?>">
-                            <?php if ($c): ?>
-                                <span class="criterio-num"> C_<?= ($i+1) ?> (<?= (int)(isset($c['puntos']) ? $c['puntos'] : (isset($c['puntaje']) ? $c['puntaje'] : 0)) ?>) </span>
+                        <th class="criterio-celda col-ind<?= $i ?>">
+                            <?php if ($c):
+                                $descr = $c['name'] ?? $c['descripcion'] ?? '';
+                                $puntos = isset($c['puntos']) ? $c['puntos'] : (isset($c['puntaje']) ? $c['puntaje'] : 0);
+                            ?>
+                                <span class="criterio-num"> <?= ($j+1) ?>(<?= (int)$puntos ?>) </span>
+                                <span class="criterio-tooltip"><?= htmlspecialchars($descr) ?></span>
                             <?php else: ?>
                                 <div class="small text-muted">-</div>
                             <?php endif; ?>
@@ -100,17 +241,17 @@
                         <td class="text-start"><?= htmlspecialchars($stu['name']) ?></td>
 
                         <?php
-                        foreach ($indicadores as $ind):
+                        foreach ($indicadores as $i => $ind):
                             $lista = $criterios[$ind['id']] ?? [];
-                            for ($i = 0; $i < max(3, count($lista)); $i++):
-                                $c = $lista[$i] ?? null;
+                            for ($j = 0; $j < max(3, count($lista)); $j++):
+                                $c = $lista[$j] ?? null;
                                 if ($c):
                                     $idC = (int)$c['id'];
                                     $puntosC = isset($c['puntos']) ? (int)$c['puntos'] : (isset($c['puntaje']) ? (int)$c['puntaje'] : 0);
                                     $notaExisting = $notas[$stu['id']][$idC]['nota'] ?? null;
                                     $qualExisting = $notas[$stu['id']][$idC]['cualitativa'] ?? '';
                                 ?>
-                                    <td data-puntos="<?= $puntosC ?>">
+                                    <td data-puntos="<?= $puntosC ?>" class="col-ind<?= $i ?>">
                                         <div class="d-flex flex-column">
                                             <select class="form-select select-qual" 
                                                     data-student="<?= $stu['id'] ?>"
@@ -126,12 +267,11 @@
                                         </div>
                                     </td>
                                 <?php else: ?>
-                                    <td></td>
+                                    <td class="col-ind<?= $i ?>"></td>
                                 <?php endif;
                             endfor;
                         endforeach;
                         ?>
-
                         <td class="total-num">0</td>
                         <td class="total-qual">--</td>
                     </tr>
@@ -291,7 +431,6 @@
 
         const escala = MAP[cual] || 0;
         const notaFinal = Math.round(puntos * escala);
-
         const body = new URLSearchParams();
         body.append('idStudent', idStudent);
         body.append('idCriterio', idCriterio);
@@ -383,6 +522,67 @@
     }
 
 })();
+// --- Ocultar/mostrar columnas por checkbox ---
+document.addEventListener('DOMContentLoaded', function() {
+    document.querySelectorAll('.toggle-col').forEach(function(checkbox) {
+        checkbox.addEventListener('change', function() {
+            const colgroup = this.dataset.colgroup;
+            const checked = this.checked;
+            if (colgroup.startsWith('ind')) {
+                document.querySelectorAll('.col-' + colgroup).forEach(function(col) {
+                    col.style.display = checked ? '' : 'none';
+                });
+            } else if (colgroup === 'disciplina') {
+                document.querySelectorAll('.col-disciplina').forEach(function(col) {
+                    col.style.display = checked ? '' : 'none';
+                });
+            }
+        });
+    });
+});
+</script>
+
+
+<script>
+// Exportar notas filtradas/visibles a Excel
+document.getElementById('btnExportarNotas').addEventListener('click', function() {
+    const tabla = document.getElementById('tablaCalif');
+    if (!tabla) return;
+    // Solo filas visibles
+    const filas = Array.from(tabla.querySelectorAll('tbody tr')).filter(tr => tr.style.display !== 'none');
+    if (filas.length === 0) {
+        alert('No hay notas para exportar con los filtros actuales.');
+        return;
+    }
+    // Usar encabezados completos generados en PHP
+    const headerNames = window.EXPORT_NOTAS_HEADERS;
+    // Datos
+    const data = filas.map(tr => {
+        const tds = Array.from(tr.children);
+        let arr = [];
+        // Nombre del estudiante
+        arr.push(tds[0] ? tds[0].innerText.trim() : '');
+        // Criterios (todos los td con select.select-qual, en orden)
+        for (let i = 1; i < tds.length - 2; i++) {
+            const td = tds[i];
+            const select = td.querySelector && td.querySelector('select.select-qual');
+            if (select) {
+                arr.push(select.value || '');
+            } else {
+                arr.push('');
+            }
+        }
+        // Total numérico y cualitativa
+        arr.push(tds[tds.length-2] ? tds[tds.length-2].innerText.trim() : '');
+        arr.push(tds[tds.length-1] ? tds[tds.length-1].innerText.trim() : '');
+        return arr;
+    });
+    // Crear hoja y libro
+    const ws = XLSX.utils.aoa_to_sheet([headerNames, ...data]);
+    const wb = XLSX.utils.book_new();
+    XLSX.utils.book_append_sheet(wb, ws, 'Notas');
+    XLSX.writeFile(wb, 'notas_filtradas.xlsx');
+});
 </script>
 
 <?php require_once "../view/footer.php"; ?>

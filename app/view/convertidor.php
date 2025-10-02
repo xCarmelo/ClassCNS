@@ -14,7 +14,7 @@
     </div>
 
     <div class="form-group">
-        <label>Voces disponibles:</label>
+        <label>Voces disponibles:</label> 
         <div class="form-group mt-3">
             <button class="btn btn-outline-dark btn-sm" onclick="toggleFavoritas()">🔖 Mostrar solo favoritas</button>
         </div>
@@ -48,7 +48,7 @@
 
 <?php require_once "../view/footer.php"; ?>
 
-<script src="https://cdn.webrtc-experiment.com/RecordRTC.js"></script>
+
 
 <script>
 let recorder;

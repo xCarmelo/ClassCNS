@@ -18,7 +18,7 @@
         </button>
     </div>
 
-    <table class="table table-bordered table-hover">
+    <table class="table table-bordered table-hover" id="tablaIndicadores">
         <thead class="table-dark">
             <tr>
                 <th>Nombre</th>
@@ -150,6 +150,7 @@
             <?php endforeach; ?>
         </tbody>
     </table>
+    <div id="pagination" class="d-flex justify-content-center mt-3"></div>
 </div>
 
 <!-- Modal Agregar Indicador -->
@@ -319,6 +320,54 @@ document.addEventListener('DOMContentLoaded', function () {
             alert('Error guardando criterios: ' + err.message);
         });
     });
+});
+</script>
+
+
+<script>
+// Paginación para tabla de indicadores
+document.addEventListener('DOMContentLoaded', function () {
+    const tabla = document.getElementById('tablaIndicadores');
+    const tbody = tabla.querySelector('tbody');
+    const pagination = document.getElementById('pagination');
+    let rows = Array.from(tbody.querySelectorAll('tr'));
+    let filteredRows = rows;
+    let currentPage = 1;
+    const rowsPerPage = 10;
+
+    function renderPage(page) {
+        currentPage = page;
+        filteredRows.forEach((row, i) => {
+            row.style.display = (i >= (page-1)*rowsPerPage && i < page*rowsPerPage) ? '' : 'none';
+        });
+        rows.filter(r => !filteredRows.includes(r)).forEach(r => r.style.display = 'none');
+        renderPagination();
+    }
+
+    function renderPagination() {
+        pagination.innerHTML = '';
+        const totalPages = Math.ceil(filteredRows.length / rowsPerPage);
+        if (totalPages <= 1) return;
+        const ul = document.createElement('ul');
+        ul.className = 'pagination';
+        for (let i=1; i<=totalPages; i++) {
+            const li = document.createElement('li');
+            li.className = 'page-item ' + (i===currentPage ? 'active' : '');
+            const a = document.createElement('a');
+            a.className = 'page-link';
+            a.href = '#';
+            a.textContent = i;
+            a.addEventListener('click', (e) => {
+                e.preventDefault();
+                renderPage(i);
+            });
+            li.appendChild(a);
+            ul.appendChild(li);
+        }
+        pagination.appendChild(ul);
+    }
+
+    renderPage(1);
 });
 </script>
 

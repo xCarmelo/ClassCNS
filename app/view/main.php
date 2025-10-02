@@ -1,65 +1,43 @@
-<main class="main-container">
-    <header class="main-container__header">
-        <div class="main-container__logo">
-            <img src="/public/assets/São José Design Católico.jpg" alt="Logo" class="main-container__logo-img">
-        </div>
-        <h1 class="main-container__title">Carpintería de San José</h1>
-    </header>
-
-    <ul class="main-container__link-container">
-        <li class="main-container__link-item">
-            <a href="/app/controller/getStudentController.php" class="main-container__link">
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+  <div class="container-fluid">
+    <a class="navbar-brand d-flex align-items-center" href="/app/view/home.php">
+      <img src="/public/assets/São José Design Católico.jpg" alt="Logo" width="40" height="40" class="d-inline-block align-top rounded-circle me-2">
+      <span style="font-size:1.5rem; font-weight:bold;">Carpintería San José</span>
+    </a>
+    <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#menuHamburguesa" aria-controls="menuHamburguesa" aria-expanded="false" aria-label="Toggle navigation">
+      <span class="navbar-toggler-icon"></span>
+    </button>
+    <div class="collapse navbar-collapse" id="menuHamburguesa">
+      <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+        <li class="nav-item">
+            <div class="nav-item dropdown">
+              <a href="/app/controller/getStudentController.php" class="nav-link fs-5 fw-bold dropdown-toggle" id="estudiantesDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
                 <i class="bi bi-person-lines-fill"></i> Estudiantes
-            </a>
+              </a>
+              <ul class="dropdown-menu" aria-labelledby="estudiantesDropdown">
+                <li><a class="dropdown-item" href="/app/controller/getStudentController.php"><i class="bi bi-list-ul"></i> Listado</a></li>
+                <li><a class="dropdown-item" href="/app/controller/asistenciaController.php"><i class="bi bi-calendar-check"></i> Asistencia</a></li>
+                <li><a class="dropdown-item" href="/app/controller/getAsuntoController.php"><i class="bi bi-chat-dots-fill"></i> Asuntos</a></li>
+                <li><a class="dropdown-item" href="/app/controller/NotasController.php"><i class="bi bi-clipboard-check"></i> Calificaciones</a></li>
+              </ul>
+            </div>
         </li>
-        <li class="main-container__link-item">
-            <a href="/app/controller/getSeccionController.php" class="main-container__link">
-                <i class="bi bi-diagram-3-fill"></i> Sección
-            </a>
+        <li class="nav-item">
+          <a href="/app/controller/getSeccionController.php" class="nav-link fs-5 fw-bold"><i class="bi bi-diagram-3-fill"></i> Sección</a>
         </li>
-        <li class="main-container__link-item">
-            <a href="/app/controller/getMateriaController.php" class="main-container__link">
-                <i class="bi bi-journal-bookmark-fill"></i> Materia
-            </a>
+        <li class="nav-item dropdown">
+          <a href="/app/controller/getMateriaController.php" class="nav-link fs-5 fw-bold dropdown-toggle" id="materiaDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+            <i class="bi bi-journal-bookmark-fill"></i> Materia
+          </a>
+          <ul class="dropdown-menu" aria-labelledby="materiaDropdown">
+            <li><a class="dropdown-item" href="/app/controller/getIndicadorDeLogroController.php"><i class="bi bi-bar-chart-line-fill"></i> Indicadores</a></li>
+          </ul>
         </li>
-        <li class="main-container__link-item">
-            <a href="/app/controller/getAsuntoController.php" class="main-container__link">
-                <i class="bi bi-chat-dots-fill"></i> Asuntos
-            </a>
+        <li class="nav-item">
+          <a href="/app/controller/getAudioController.php" class="nav-link fs-5 fw-bold"><i class="bi bi-volume-up-fill"></i> Texto a voz</a>
         </li>
-        <li class="main-container__link-item">
-            <a href="/app/controller/getIndicadorDeLogroController.php" class="main-container__link">
-                <i class="bi bi-chat-dots-fill"></i> Indicadores
-            </a>
-        </li>
-       <li class="main-container__link-item">
-            <a href="/app/controller/NotasController.php" class="main-container__link">
-                <i class="bi bi-clipboard-check"></i> Calificaciones
-            </a>
-        </li>
+      </ul>
+    </div>
+  </div>
+</nav>
 
-        <li class="main-container__link-item">
-            <a href="/app/controller/getAudioController.php" class="main-container__link">
-                <i class="bi bi-volume-up-fill"></i> Texto a voz
-            </a>
-        </li>
-                <li class="main-container__link-item">
-            <a href="/app/controller/dataExtractController.php" class="main-container__link">
-                <i class="bi bi-database-down"></i> Extraer datos
-            </a>
-        </li>
-        <li class="main-container__link-item">
-            <a href="#" class="main-container__link">
-                <i class="bi bi-arrow-repeat"></i> Sincronizar registros
-            </a>
-        </li>
-
-
-    </ul>
-
-    <footer class="footer">
-        <a href="/app/view//home.php" class="footer__exit" title="Inicio">
-            <i class="bi bi-house-door-fill footer__exit-icon"></i>
-        </a>
-    </footer>
-</main>

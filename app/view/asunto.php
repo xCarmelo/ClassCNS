@@ -15,6 +15,7 @@
 <div class="container py-4">
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h2>Listado de Asuntos</h2>
+    <button id="btnExportarAsuntos" class="btn btn-success"><i class="bi bi-file-earmark-excel"></i> Exportar Asuntos</button>
   </div>
 
   <div class="row mb-3">
@@ -261,6 +262,34 @@ if (isset($_SESSION['status'])):
 </div>
 <?php endif; ?>
 
+
+
+<script>
+// Exportar asuntos filtrados a Excel (sin columna Status)
+document.getElementById('btnExportarAsuntos').addEventListener('click', function() {
+  const tabla = document.getElementById('tablaAsuntos');
+  const filas = Array.from(tabla.querySelectorAll('tbody tr')).filter(tr => tr.dataset.visible === 'true');
+  if (filas.length === 0) {
+    alert('No hay asuntos para exportar con los filtros actuales.');
+    return;
+  }
+  // Encabezados (excepto Status)
+  const ths = Array.from(tabla.querySelectorAll('thead th'));
+  const headers = ths.map((th, i) => ({text: th.innerText.trim(), idx: i}))
+    .filter(h => h.text.toLowerCase() !== 'status');
+  const headerNames = headers.map(h => h.text);
+  // Datos
+  const data = filas.map(tr => {
+    const tds = Array.from(tr.children);
+    return headers.map(h => tds[h.idx].innerText.trim());
+  });
+  // Crear hoja y libro
+  const ws = XLSX.utils.aoa_to_sheet([headerNames, ...data]);
+  const wb = XLSX.utils.book_new();
+  XLSX.utils.book_append_sheet(wb, ws, 'Asuntos');
+  XLSX.writeFile(wb, 'asuntos_filtrados.xlsx');
+});
+</script>
 
 <?php require_once "../view/footer.php"; ?>
 

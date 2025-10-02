@@ -14,5 +14,5 @@ session_start();
     <link rel="stylesheet" href="/public/css/styles.css"> 
 </head>
 <body>
-    <div class="container-primary">
+    <div class="container-fluid p-0 min-vh-100 d-flex flex-column">
         <?php require "../view/main.php";?>
