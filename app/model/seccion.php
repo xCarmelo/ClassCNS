@@ -1,5 +1,5 @@
 <?php
-require_once '../model/Database.php';
+require_once __DIR__ . '/Database.php';
 
 class Seccion {
     public int $id;
@@ -8,6 +8,7 @@ class Seccion {
     public static $pdo;
     public static $table;
     public static $db;
+    private int $status = 0;
 
     public function __construct() {
         self::$db = Database::getInstance();

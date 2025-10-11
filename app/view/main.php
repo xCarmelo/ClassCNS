@@ -30,6 +30,7 @@
             <i class="bi bi-journal-bookmark-fill"></i> Materia
           </a>
           <ul class="dropdown-menu" aria-labelledby="materiaDropdown">
+            <li><a class="dropdown-item" href="/app/controller/getMateriaController.php"><i class="bi bi-bar-chart-line-fill"></i> Lista</a></li>
             <li><a class="dropdown-item" href="/app/controller/getIndicadorDeLogroController.php"><i class="bi bi-bar-chart-line-fill"></i> Indicadores</a></li>
           </ul>
         </li>

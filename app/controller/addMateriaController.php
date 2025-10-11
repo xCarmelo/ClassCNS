@@ -6,7 +6,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $materia = new Materia();
     $materia->name = $_POST['name'] ?? '';
 
-    $exito = $materia->addMateria();
+    $exito = $materia->create($materia->name);
 
     $_SESSION['status'] = $exito ? 'success' : 'error';
     $_SESSION['action'] = 'add';

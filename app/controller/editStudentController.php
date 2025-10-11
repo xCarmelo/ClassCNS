@@ -7,6 +7,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $student->id = $_POST['id'] ?? null;
     $student->name = $_POST['name'] ?? '';
     $student->idSeccion = $_POST['idSeccion'] ?? null;
+    $student->NumerodeLista = $_POST['NumerodeLista'] ?? null;
 
     $exito = $student->updateStudent();
 

@@ -39,6 +39,21 @@
             <label for="buscador" class="form-label">Buscar por nombre:</label>
             <input type="text" id="buscador" class="form-control" placeholder="Nombre del estudiante">
         </div>
+
+        <!-- FILTRO POR CORTE -->
+        <div class="col-md-4">
+            <label for="filtroCorte" class="form-label">Filtrar por corte:</label>
+            <select id="filtroCorte" class="form-select">
+                <option value="">Todos</option>
+                <?php foreach ($cortes as $corte): ?>
+                    <option value="<?= htmlspecialchars($corte['id']) ?>">
+                        <?= htmlspecialchars($corte['name']) ?>
+                    </option>
+                <?php endforeach; ?>
+            </select>
+        </div>
+
+
     </div>
 
     <div class="table-responsive">
@@ -49,18 +64,20 @@
                         <th>#</th>
                         <th>Nombre</th>
                         <th>Sección</th>
+                        <th>Corte</th>
                         <th>Acciones</th>
                     </tr>
                 </thead>
                 <tbody>
                     <?php if (!empty($students)): ?>
                         <?php foreach ($students as $index => $student): ?>
-                            <tr data-seccion="<?= htmlspecialchars($student['idSeccion']) ?>">
-                                <td><?= $index + 1 ?></td>
+                            <tr data-seccion="<?= htmlspecialchars($student['idSeccion']) ?> ">
+                                <td><?= $student["NumerodeLista"] ?></td>
                                 <td class="nombre"><?= htmlspecialchars($student['name']) ?></td>
                                 <td><?= htmlspecialchars($student['seccion_name']) ?></td>
+                                <td><?= htmlspecialchars($student['corte_name'] ?? '—') ?></td>
                                 <td>
-                                    <button class="btn btn-sm btn-warning btn-editar" data-id="<?= $student['id'] ?>">
+                                    <button class="btn btn-sm btn-warning btn-editar" data-id="<?= $student['id'] ?>"  data-corte="<?= htmlspecialchars($student['idCorte'] ?? '') ?>">
                                         <i class="bi bi-pencil-square"></i>
                                     </button>
                                     <a href="/app/controller/deleteStudentController.php?id=<?= $student['id'] ?>" class="btn btn-sm btn-danger" onclick="return confirm('¿Estás seguro de eliminar este estudiante?');">
@@ -210,6 +227,7 @@ if (isset($_SESSION['status']) && isset($_SESSION['action'])):
           <label for="edit-name" class="form-label">Nombre:</label>
           <input type="text" class="form-control" id="edit-name" name="name" required>
         </div>
+
         <div class="mb-3">
           <label for="edit-idSeccion" class="form-label">Sección:</label>
           <select class="form-select" id="edit-idSeccion" name="idSeccion" required>
@@ -222,7 +240,14 @@ if (isset($_SESSION['status']) && isset($_SESSION['action'])):
             ?>
           </select>
         </div>
+
+        <!-- 🆕 Nuevo campo: Número de lista -->
+        <div class="mb-3">
+          <label for="edit-numero-lista" class="form-label">Número de lista:</label>
+          <input type="number" class="form-control" id="edit-numero-lista" name="NumerodeLista" min="1" required>
+        </div>
       </div>
+
       <div class="modal-footer">
         <button type="submit" class="btn btn-success">Actualizar</button>
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
@@ -230,6 +255,7 @@ if (isset($_SESSION['status']) && isset($_SESSION['action'])):
     </form>
   </div>
 </div>
+
 
 <!-- Modal Agregar Asunto -->
 <div class="modal fade" id="modalAgregarAsunto" tabindex="-1" aria-labelledby="modalAgregarAsuntoLabel" aria-hidden="true">
@@ -296,31 +322,34 @@ if (isset($_SESSION['status']) && isset($_SESSION['action'])):
   const rowsPerPage = 10;
   let currentPage = 1;
 
-  function filtrarYPaginar() {
-    const filtroSeccion = document.getElementById('filtroSeccion').value;
-    const buscador = document.getElementById('buscador').value.toLowerCase();
+function filtrarYPaginar() {
+  const filtroSeccion = document.getElementById('filtroSeccion').value;
+  const filtroCorte = document.getElementById('filtroCorte') ? document.getElementById('filtroCorte').value : '';
+  const buscador = document.getElementById('buscador').value.toLowerCase();
 
-    const rows = Array.from(document.querySelectorAll('#tablaEstudiantes tbody tr'));
+  const rows = Array.from(document.querySelectorAll('#tablaEstudiantes tbody tr'));
+  let visibles = [];
 
-    let visibles = [];
+  rows.forEach(row => {
+    const seccion = row.dataset.seccion || '';
+    const corte = row.dataset.corte || '';
+    const nombre = (row.querySelector('.nombre')?.textContent || '').toLowerCase();
 
-    rows.forEach(row => {
-      const seccion = row.dataset.seccion;
-      const nombre = row.querySelector('.nombre').textContent.toLowerCase();
+    const coincideSeccion = !filtroSeccion || seccion === filtroSeccion;
+    const coincideCorte = !filtroCorte || corte === filtroCorte;
+    const coincideNombre = nombre.includes(buscador);
 
-      const coincideSeccion = !filtroSeccion || seccion === filtroSeccion;
-      const coincideNombre = nombre.includes(buscador);
+    if (coincideSeccion && coincideCorte && coincideNombre) {
+      row.dataset.visible = "true";
+      visibles.push(row);
+    } else {
+      row.dataset.visible = "false";
+    }
+  });
 
-      if (coincideSeccion && coincideNombre) {
-        row.dataset.visible = "true";
-        visibles.push(row);
-      } else {
-        row.dataset.visible = "false";
-      }
-    });
+  aplicarPaginacion(visibles);
+}
 
-    aplicarPaginacion(visibles);
-  }
 
   function aplicarPaginacion(rows) {
     const paginacion = document.getElementById('paginacionEstudiantes');
@@ -360,35 +389,46 @@ if (isset($_SESSION['status']) && isset($_SESSION['action'])):
     filtrarYPaginar();
   });
 
+  document.getElementById('filtroCorte').addEventListener('change', () => {
+  currentPage = 1;
+  filtrarYPaginar();
+});
+
+
   // Ejecutar al cargar
   window.addEventListener('DOMContentLoaded', () => {
     filtrarYPaginar();
   });
 
-  // Manejo de edición de estudiantes
-  document.querySelectorAll('.btn-editar').forEach(btn => {
-    btn.addEventListener('click', function () {
-      const studentId = this.getAttribute('data-id');
-      fetch(`/app/controller/getByIdStudentController.php?id=${studentId}`)
-        .then(response => response.json())
-        .then(data => {
-          if (data.success) {
-            const student = data.student;
-            document.getElementById('edit-id').value = student.id;
-            document.getElementById('edit-name').value = student.name;
-            document.getElementById('edit-idSeccion').value = student.idSeccion;
-            const modal = new bootstrap.Modal(document.getElementById('modalEditar'));
-            modal.show();
-          } else {
-            alert('No se pudo obtener la información del estudiante.');
-          }
-        })
-        .catch(error => {
-          console.error('Error:', error);
-          alert('Ocurrió un error al intentar obtener los datos del estudiante.');
-        });
-    });
+// Manejo de edición de estudiantes
+document.querySelectorAll('.btn-editar').forEach(btn => {
+  btn.addEventListener('click', function () {
+    const studentId = this.getAttribute('data-id');
+    fetch(`/app/controller/getByIdStudentController.php?id=${studentId}`)
+      .then(response => response.json())
+      .then(data => {
+        if (data.success) {
+          const student = data.student;
+          document.getElementById('edit-id').value = student.id;
+          document.getElementById('edit-name').value = student.name;
+          document.getElementById('edit-idSeccion').value = student.idSeccion;
+
+          // 🆕 Mostrar número de lista actual en el modal
+          document.getElementById('edit-numero-lista').value = student.NumerodeLista ?? '';
+
+          const modal = new bootstrap.Modal(document.getElementById('modalEditar'));
+          modal.show();
+        } else {
+          alert('No se pudo obtener la información del estudiante.');
+        }
+      })
+      .catch(error => {
+        console.error('Error:', error);
+        alert('Ocurrió un error al intentar obtener los datos del estudiante.');
+      });
   });
+});
+
 
   // Para agregar un nuevo asunto
   let modalAgregar = new bootstrap.Modal(document.getElementById('modalAgregarAsunto'));

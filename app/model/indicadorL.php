@@ -31,7 +31,7 @@ class IndicadorL {
 public function getByFilters($idMateria, $anio, $idCorte) {
     $sql = "SELECT * FROM indicadorl 
             WHERE idMateria = :idMateria 
-              AND año = :anio 
+                  AND `año` = :anio 
               AND idCorte = :idCorte";
     $stmt = self::$pdo->prepare($sql);
     $stmt->execute([
@@ -54,8 +54,8 @@ public function getByFilters($idMateria, $anio, $idCorte) {
 
     // Crear indicador — devuelve el id insertado (int) o false si falla
 public function create(string $name, int $anio, ?int $idCorte, ?int $idMateria) {
-    $sql = "INSERT INTO indicadorl (name, año, idMateria, idCorte)
-            VALUES (:name, :anio, :idMateria, :idCorte)";
+    $sql = "INSERT INTO indicadorl (name, `año`, idMateria, idCorte)
+                VALUES (:name, :anio, :idMateria, :idCorte)";
     $stmt = self::$pdo->prepare($sql);
     $ok = $stmt->execute([
         ':name'      => $name,

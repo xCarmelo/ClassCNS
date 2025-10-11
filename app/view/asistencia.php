@@ -5,8 +5,8 @@
     <?php
     // Definir variable de filtros completos antes de usarla
     $filtrosCompletos = isset($_GET['seccion']) && $_GET['seccion'] !== '' &&
-                       isset($_GET['corte']) && $_GET['corte'] !== '' &&
-                       isset($_GET['materia']) && $_GET['materia'] !== '';
+    isset($_GET['corte']) && $_GET['corte'] !== '' &&
+    isset($_GET['materia']) && $_GET['materia'] !== '';
     ?>
     <form method="get" class="mb-3" id="filtroForm">
         <div class="row">
@@ -68,66 +68,66 @@
         }
     }
     ?>
-    <table class="table table-bordered" id="tablaAsistencia">
-        <thead>
-            <tr>
-                <th>#</th>
-                <th>Nombre y Apellidos</th>
-                <?php foreach ($columnas as $col): ?>
-                    <th style="writing-mode: vertical-rl; text-align: center; vertical-align: bottom; white-space: nowrap; font-size:1em; font-weight:bold;">
-                        <?= htmlspecialchars($col['fecha']) ?><br>
-                        <span style="font-size:0.9em;font-style:italic;">(<?= htmlspecialchars($col['tema']) ?>)</span>
-                    </th>
+<table class="table table-bordered" id="tablaAsistencia">
+    <thead>
+        <tr>
+            <th>#</th>
+            <th>Nombre y Apellidos</th>
+            <?php foreach ($columnas as $col): ?>
+                <th style="writing-mode: vertical-rl; text-align: center; vertical-align: bottom; white-space: nowrap; font-size:1em; font-weight:bold;">
+                    <?= htmlspecialchars($col['fecha']) ?><br>
+                    <span style="font-size:0.9em;font-style:italic;">(<?= htmlspecialchars($col['tema']) ?>)</span>
+                </th>
+            <?php endforeach; ?>
+        </tr>
+    </thead>
+    <tbody>
+        <?php
+        $estudiantes = [];
+        $studentModel = new Student();
+        $estudiantesDB = isset($_GET['seccion']) && $_GET['seccion'] !== '' ? $studentModel->getBySeccion($_GET['seccion']) : [];
+        foreach ($estudiantesDB as $est) {
+            $estudiantes[$est['id']] = $est;
+        }
+
+        // 🚨 Guardamos el id de la materia seleccionada
+        $materiaSeleccionada = isset($_GET['materia']) ? intval($_GET['materia']) : null;
+
+        // ✅ id real de Informática en tu BD
+        $idInformatica = 2;
+
+        foreach ($estudiantes as $idStudent => $est):
+        ?>
+            <tr class="<?= (isset($est['fin']) && $est['fin'] == 1) ? 'table-danger' : '' ?>">
+                <td><?= htmlspecialchars($est['NumerodeLista']) ?></td>
+                <td><?= htmlspecialchars($est['name']) ?></td>
+                <?php foreach ($columnas as $key => $col): ?>
+                    <td>
+                        <?php
+                        $tipo = '';
+                        foreach ($asistencias as $a) {
+                            if ($a['idStudent'] == $idStudent && $a['Fecha'] == $col['fecha'] && $a['nombreDelTema'] == $col['tema']) {
+                                $tipo = isset($a['tipo_asistencia']) ? $a['tipo_asistencia'] : $a['idTipoAsistencia'];
+                                break;
+                            }
+                        }
+                        echo '<span style="font-size:1.2em;font-weight:bold;">' . htmlspecialchars($tipo) . '</span>';
+                        ?>
+                    </td>
                 <?php endforeach; ?>
             </tr>
-        </thead>
-        <tbody>
             <?php
-            $estudiantes = [];
-            $studentModel = new Student();
-            $estudiantesDB = isset($_GET['seccion']) && $_GET['seccion'] !== '' ? $studentModel->getBySeccion($_GET['seccion']) : [];
-            foreach ($estudiantesDB as $est) {
-                $estudiantes[$est['id']] = $est;
+            // 🚨 Si la materia seleccionada es Informática (id=2) y el estudiante tiene fin=1, se corta la lista
+            if ($materiaSeleccionada === $idInformatica && isset($est['fin']) && $est['fin'] == 1) {
+                break; // rompe el foreach de estudiantes
             }
+        endforeach;
+        ?>
+    </tbody>
+</table>
 
-            // Detectar nombre de la sección seleccionada
-            $nombreSeccionSeleccionada = '';
-            foreach ($secciones as $sec) {
-                if (isset($_GET['seccion']) && $_GET['seccion'] == $sec['id']) {
-                    $nombreSeccionSeleccionada = $sec['name'];
-                    break;
-                }
-            }
 
-            foreach ($estudiantes as $idStudent => $est):
-                ?>
-                <tr class="<?= (isset($est['fin']) && $est['fin'] == 1) ? 'table-danger' : '' ?>">
-                    <td><?= htmlspecialchars($est['NumerodeLista']) ?></td>
-                    <td><?= htmlspecialchars($est['name']) ?></td>
-                    <?php foreach ($columnas as $key => $col): ?>
-                        <td>
-                            <?php
-                            $tipo = '';
-                            foreach ($asistencias as $a) {
-                                if ($a['idStudent'] == $idStudent && $a['Fecha'] == $col['fecha'] && $a['nombreDelTema'] == $col['tema']) {
-                                    $tipo = isset($a['tipo_asistencia']) ? $a['tipo_asistencia'] : $a['idTipoAsistencia'];
-                                    break;
-                                }
-                            }
-                            echo '<span style="font-size:1.2em;font-weight:bold;">' . htmlspecialchars($tipo) . '</span>';
-                            ?>
-                        </td>
-                    <?php endforeach; ?>
-                </tr>
-                <?php
-                // 🚨 Si es Informática y fin=1, cortamos el bucle
-                if ($nombreSeccionSeleccionada === "Informatica" && isset($est['fin']) && $est['fin'] == 1) {
-                    break;
-                }
-            endforeach;
-            ?>
-        </tbody>
-    </table>
+
     <nav>
         <ul class="pagination justify-content-center" id="paginacionAsistencia"></ul>
     </nav>

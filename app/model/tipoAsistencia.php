@@ -8,7 +8,7 @@ class TipoAsistencia {
     }
 
     public function obtenerTodos() {
-        $sql = "SELECT * FROM tipoAsistencia";
+        $sql = "SELECT * FROM tipoasistencia";
         $stmt = $this->db->query($sql);
         return $stmt->fetchAll();
     }

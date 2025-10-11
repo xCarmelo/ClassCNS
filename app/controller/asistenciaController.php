@@ -23,15 +23,6 @@ $filtros = [
     'materia' => isset($_GET['materia']) ? $_GET['materia'] : ''
 ];
 
-// Eliminar asistencia
-if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['eliminar'], $_POST['id'])) {
-    $exito = $asistenciaModel->eliminar($_POST['id']);
-    $_SESSION['status'] = $exito ? 'success' : 'error';
-    $_SESSION['action'] = 'delete';
-    header('Location: asistenciaController.php?' . http_build_query($filtros));
-    exit();
-}
-
 // Actualizar tipo de asistencia
 if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['id_asistencia'], $_POST['tipo_asistencia'])) {
     $exito = $asistenciaModel->actualizarTipoAsistencia($_POST['id_asistencia'], $_POST['tipo_asistencia']);

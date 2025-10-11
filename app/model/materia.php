@@ -33,7 +33,7 @@ class Materia {
         return $stmt->execute([':name' => $name]);
     }
 
-    public function update(int $id, string $name): bool {
+    public function updateMateria(int $id, string $name): bool { 
         $sql = "UPDATE `" . self::$table . "` SET name = :name WHERE id = :id";
         $stmt = self::$pdo->prepare($sql);
         return $stmt->execute([':name' => $name, ':id' => $id]);

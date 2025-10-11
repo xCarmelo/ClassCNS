@@ -1,8 +1,9 @@
 <?php
-require_once '../model/Database.php';
+require_once __DIR__ . '/Database.php';
 
 class Asunto {
     public int $id;
+    // En BD es datetime; usar string ISO 'Y-m-d H:i:s' o DateTime según controlador
     public string $fecha;
     public string $nota;
     public string $tema;
@@ -13,12 +14,14 @@ class Asunto {
     public static $pdo;
     public static $table;
     public static $db;
+    private int $status = 0;
 
     public function __construct() {
         self::$db = Database::getInstance();
         self::$pdo = self::$db->getConnection();
-        $this->status = self::$db->getConnectionStatus();
-        self::$table = 'Asunto';
+    $this->status = self::$db->getConnectionStatus();
+    // Nombre real de tabla en minúsculas
+    self::$table = 'asunto';
     }
 
 public function getAllAsunto() {

@@ -13,7 +13,11 @@
     font-size: 1.3em;
     font-weight: bold;
 }
+.table-danger {
+    background-color: #f8d7da !important;
+}
 </style>
+
 <div class="container">
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h2>Nueva Asistencia</h2>
@@ -21,17 +25,23 @@
             <i class="bi bi-check2-square"></i> Aplicar tipo de asistencia
         </button>
     </div>
+
     <?php
-    // Recibir los filtros por GET y guardarlos en inputs ocultos
+    // Recibir los filtros por GET
     $idSeccion = isset($_GET['seccion']) ? $_GET['seccion'] : '';
     $idCorte = isset($_GET['corte']) ? $_GET['corte'] : '';
-    $idMateria = isset($_GET['materia']) ? $_GET['materia'] : '';
+    $idMateria = isset($_GET['materia']) ? intval($_GET['materia']) : '';
     $fecha = date('Y-m-d');
+
+    // ID real de Informática (según tu BD)
+    $idInformatica = 2;
     ?>
+
     <form method="post" id="formNuevaAsistencia" onsubmit="return confirmarGuardarNuevaAsistencia()">
         <input type="hidden" name="idSeccion" value="<?= htmlspecialchars($idSeccion) ?>">
         <input type="hidden" name="idCorte" value="<?= htmlspecialchars($idCorte) ?>">
         <input type="hidden" name="idMateria" value="<?= htmlspecialchars($idMateria) ?>">
+
         <div class="row mb-3">
             <div class="col">
                 <label>Fecha:</label>
@@ -42,6 +52,7 @@
                 <input type="text" name="nombreDelTema" class="form-control" required>
             </div>
         </div>
+
         <table class="table table-bordered">
             <thead>
                 <tr>
@@ -52,7 +63,9 @@
             <tbody>
                 <?php
                 foreach ($estudiantes as $est) {
-                    echo '<tr class="fila-estudiante' . ((!empty($est['fin']) && intval($est['fin']) === 1) ? ' table-danger' : '') . '">';
+                    // Colorear si tiene fin = 1
+                    $claseFila = (!empty($est['fin']) && intval($est['fin']) === 1) ? ' table-danger' : '';
+                    echo '<tr class="fila-estudiante' . $claseFila . '">';
                     echo '<td>' . htmlspecialchars($est['name']) . '</td>';
                     echo '<td>';
                     echo '<select name="tipo_asistencia[' . $est['id'] . ']" class="form-control tipo-asistencia-select">';
@@ -63,14 +76,18 @@
                     echo '</select>';
                     echo '</td>';
                     echo '</tr>';
-                    if (!empty($est['fin']) && intval($est['fin']) === 1) {
+
+                    // 🚨 Si la materia es Informática (id=2) y tiene fin=1 → se corta la lista
+                    if ($idMateria === $idInformatica && !empty($est['fin']) && intval($est['fin']) === 1) {
                         break;
                     }
                 }
                 ?>
             </tbody>
         </table>
+
         <button type="submit" class="btn btn-success mb-3">Guardar</button>
+
         <!-- Modal Bootstrap -->
         <div class="modal fade" id="modalTipoAsistencia" tabindex="-1" aria-labelledby="modalTipoLabel" aria-hidden="true">
           <div class="modal-dialog">
@@ -98,6 +115,7 @@
         </div>
     </form>
 </div>
+
 <script>
 function confirmarGuardarNuevaAsistencia() {
     var fecha = document.querySelector('input[name="fecha"]');
@@ -115,7 +133,7 @@ function confirmarGuardarNuevaAsistencia() {
     var selects = document.querySelectorAll('.tipo-asistencia-select');
     for (var i = 0; i < selects.length; i++) {
         if (!selects[i].value) {
-            alert('Debes seleccionar el tipo de asistencia para todos los estudiantes.');
+            alert('Debes seleccionar el tipo de asistencia para todos los estudiantes mostrados.');
             selects[i].focus();
             return false;
         }
@@ -135,7 +153,6 @@ document.addEventListener('DOMContentLoaded', function() {
     }
 
     // Selección múltiple tipo Excel con Ctrl
-    let lastSelected = null;
     document.querySelectorAll('.fila-estudiante').forEach(function(row) {
         row.addEventListener('click', function(e) {
             if (e.ctrlKey) {
@@ -144,15 +161,16 @@ document.addEventListener('DOMContentLoaded', function() {
                 document.querySelectorAll('.fila-estudiante').forEach(r => r.classList.remove('selected'));
                 row.classList.add('selected');
             }
-            lastSelected = row;
         });
     });
+
     // Abrir modal Bootstrap 5
     const btnAplicarTipo = document.getElementById('btnAplicarTipo');
     btnAplicarTipo.addEventListener('click', function() {
         var modal = new bootstrap.Modal(document.getElementById('modalTipoAsistencia'));
         modal.show();
     });
+
     // Aplicar tipo de asistencia masivo
     const btnAplicarModal = document.getElementById('btnAplicarModal');
     btnAplicarModal.addEventListener('click', function() {
@@ -170,4 +188,5 @@ document.addEventListener('DOMContentLoaded', function() {
     });
 });
 </script>
+
 <?php require_once "../view/footer.php"; ?>

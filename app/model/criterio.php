@@ -30,9 +30,9 @@ class Criterio {
     }
 
     # app/model/criterio.php
-public function getByIndicadorL($idIndicadorL) {
-    return $this->getByIndicador($idIndicadorL);
-}
+    public function getByIndicadorL($idIndicadorL) {
+        return $this->getByIndicador($idIndicadorL);
+    }
 
 
     /**
@@ -86,9 +86,9 @@ public function getByIndicadorL($idIndicadorL) {
         return $stmt->execute([':idIndicadorL' => $idIndicadorL]);
     }
 
-     public function getById(int $idCriterio): ?array {
-        $sql = "SELECT * FROM " . self::$table . " WHERE id = :id LIMIT 1";
-        $stmt = self::$pdo->prepare($sql);
+    public function getById(int $idCriterio): ?array {
+        $sql = "SELECT id, name, puntos, idIndicadorL FROM {$this->table} WHERE id = :id LIMIT 1";
+        $stmt = $this->pdo->prepare($sql);
         $stmt->execute([':id' => $idCriterio]);
         $row = $stmt->fetch(PDO::FETCH_ASSOC);
         return $row ?: null;

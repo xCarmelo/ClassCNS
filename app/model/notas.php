@@ -57,8 +57,8 @@ class Nota {
 
     // Obtener todas las notas según filtros
     public function getNotasByFiltros($idSeccion, $idMateria, $anio, $idCorte) {
-        $sql = "SELECT n.*, s.name as studentName, c.descripcion as criterio, 
-                       c.puntaje as puntaje, ind.name as indicador
+        $sql = "SELECT n.*, s.name as studentName, c.name as criterio, 
+                       c.puntos as puntaje, ind.name as indicador
                 FROM " . self::$table . " n
                 INNER JOIN student s ON n.idStudent = s.id
                 INNER JOIN criterio c ON n.idCriterio = c.id
@@ -66,7 +66,7 @@ class Nota {
                 INNER JOIN enlace e ON e.idSeccion = s.idSeccion AND e.idIndicador = ind.id
                 WHERE s.idSeccion = :idSeccion 
                   AND ind.idMateria = :idMateria 
-                  AND ind.año = :anio 
+                  AND ind.`año` = :anio 
                   AND ind.idCorte = :idCorte
                 ORDER BY s.name, ind.id, c.id";
         $stmt = self::$pdo->prepare($sql);

@@ -67,6 +67,7 @@
 .home-card a:hover {
     background: #2c3e50;
 }
+
 </style>
 
 <div class="home-hero">
