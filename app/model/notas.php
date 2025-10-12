@@ -60,7 +60,7 @@ class Nota {
         $sql = "SELECT n.*, s.name as studentName, c.name as criterio, 
                        c.puntos as puntaje, ind.name as indicador
                 FROM " . self::$table . " n
-                INNER JOIN student s ON n.idStudent = s.id
+                INNER JOIN student s ON n.idStudent = s.id AND COALESCE(s.status,1) = 1
                 INNER JOIN criterio c ON n.idCriterio = c.id
                 INNER JOIN indicadorl ind ON c.idIndicadorL = ind.id
                 INNER JOIN enlace e ON e.idSeccion = s.idSeccion AND e.idIndicador = ind.id

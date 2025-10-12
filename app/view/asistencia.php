@@ -87,7 +87,9 @@
         $studentModel = new Student();
         $estudiantesDB = isset($_GET['seccion']) && $_GET['seccion'] !== '' ? $studentModel->getBySeccion($_GET['seccion']) : [];
         foreach ($estudiantesDB as $est) {
-            $estudiantes[$est['id']] = $est;
+            if ((int)($est['status'] ?? 1) === 1) {
+                $estudiantes[$est['id']] = $est; // activos
+            }
         }
 
         // 🚨 Guardamos el id de la materia seleccionada

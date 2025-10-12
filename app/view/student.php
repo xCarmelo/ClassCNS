@@ -23,7 +23,7 @@
     </div>
 
     <div class="row mb-3">
-        <div class="col-md-4">
+    <div class="col-md-4">
             <label for="filtroSeccion" class="form-label">Filtrar por sección:</label>
             <select id="filtroSeccion" class="form-select">
                 <option value="">Todas</option>
@@ -39,19 +39,14 @@
             <label for="buscador" class="form-label">Buscar por nombre:</label>
             <input type="text" id="buscador" class="form-control" placeholder="Nombre del estudiante">
         </div>
-
-        <!-- FILTRO POR CORTE -->
-        <div class="col-md-4">
-            <label for="filtroCorte" class="form-label">Filtrar por corte:</label>
-            <select id="filtroCorte" class="form-select">
-                <option value="">Todos</option>
-                <?php foreach ($cortes as $corte): ?>
-                    <option value="<?= htmlspecialchars($corte['id']) ?>">
-                        <?= htmlspecialchars($corte['name']) ?>
-                    </option>
-                <?php endforeach; ?>
-            </select>
-        </div>
+    <div class="col-md-4">
+      <label for="filtroEstado" class="form-label">Estado:</label>
+      <select id="filtroEstado" class="form-select">
+        <option value="1" <?= isset($_GET['status']) && $_GET['status']==='0' ? '' : 'selected' ?>>Activos</option>
+        <option value="0" <?= isset($_GET['status']) && $_GET['status']==='0' ? 'selected' : '' ?>>Eliminados</option>
+      </select>
+    </div>
+        
 
 
     </div>
@@ -64,7 +59,7 @@
                         <th>#</th>
                         <th>Nombre</th>
                         <th>Sección</th>
-                        <th>Corte</th>
+                        <th>Estado</th>
                         <th>Acciones</th>
                     </tr>
                 </thead>
@@ -75,22 +70,29 @@
                                 <td><?= $student["NumerodeLista"] ?></td>
                                 <td class="nombre"><?= htmlspecialchars($student['name']) ?></td>
                                 <td><?= htmlspecialchars($student['seccion_name']) ?></td>
-                                <td><?= htmlspecialchars($student['corte_name'] ?? '—') ?></td>
-                                <td>
-                                    <button class="btn btn-sm btn-warning btn-editar" data-id="<?= $student['id'] ?>"  data-corte="<?= htmlspecialchars($student['idCorte'] ?? '') ?>">
-                                        <i class="bi bi-pencil-square"></i>
-                                    </button>
-                                    <a href="/app/controller/deleteStudentController.php?id=<?= $student['id'] ?>" class="btn btn-sm btn-danger" onclick="return confirm('¿Estás seguro de eliminar este estudiante?');">
-                                        <i class="bi bi-trash"></i>
-                                    </a>
-                                    <button class="btn btn-sm btn-success btn-agregar" data-id="<?= $student['id'] ?>" data-nombre="<?= htmlspecialchars($student['name']) ?>">
-                                        <i class="bi bi-plus-circle"></i>
-                                    </button>
-                                </td>
+                                <td><?= (int)($student['status'] ?? 1) === 1 ? 'Activo' : 'Eliminado' ?></td>
+                <td>
+                  <?php $isEliminado = ((int)($student['status'] ?? 1) === 0); ?>
+                  <?php if (!$isEliminado): ?>
+                    <button class="btn btn-sm btn-warning btn-editar" data-id="<?= $student['id'] ?>">
+                      <i class="bi bi-pencil-square"></i>
+                    </button>
+                    <button class="btn btn-sm btn-danger btn-confirmar-eliminar" data-id="<?= $student['id'] ?>">
+                      <i class="bi bi-trash"></i>
+                    </button>
+                    <button class="btn btn-sm btn-success btn-agregar" data-id="<?= $student['id'] ?>" data-nombre="<?= htmlspecialchars($student['name']) ?>">
+                      <i class="bi bi-plus-circle"></i>
+                    </button>
+                  <?php else: ?>
+                    <button class="btn btn-sm btn-secondary btn-confirmar-restaurar" data-id="<?= $student['id'] ?>">
+                      <i class="bi bi-arrow-counterclockwise"></i> Restaurar
+                    </button>
+                  <?php endif; ?>
+                </td>
                             </tr>
                         <?php endforeach; ?>
                     <?php else: ?>
-                        <tr><td colspan="4" class="text-center">No hay estudiantes registrados.</td></tr>
+                        <tr><td colspan="5" class="text-center">No hay estudiantes registrados.</td></tr>
                     <?php endif; ?>
                 </tbody>
             </table>
@@ -123,6 +125,12 @@
           <div class="mb-3">
             <label for="name" class="form-label">Nombre:</label>
             <input type="text" class="form-control" id="name" name="name" required>
+          </div>
+
+          <div class="mb-3">
+            <label for="numero-lista-add" class="form-label">Número de lista:</label>
+            <input type="number" class="form-control" id="numero-lista-add" name="NumerodeLista" min="1" required>
+            <div class="form-text">No puede repetirse en la misma sección.</div>
           </div>
 
           <div class="mb-3">
@@ -179,8 +187,10 @@
 if (isset($_SESSION['status']) && isset($_SESSION['action'])):
     $modalStatus = $_SESSION['status'];
     $action = $_SESSION['action'];
+  $errorMsg = $_SESSION['error_msg'] ?? null;
 
     unset($_SESSION['status'], $_SESSION['action']);
+  unset($_SESSION['error_msg']);
 
     $mensajes = [
         'add' => ['¡Estudiante agregado!', 'El estudiante ha sido registrado correctamente.'],
@@ -188,7 +198,7 @@ if (isset($_SESSION['status']) && isset($_SESSION['action'])):
         'delete' => ['¡Estudiante eliminado!', 'El estudiante ha sido eliminado correctamente.'],
         'edit' => ['¡Estudiante actualizado!', 'Los datos del estudiante se han actualizado.'],
         'import' => ['¡Importación exitosa!', 'Los estudiantes han sido importados correctamente.'],
-        'error' => ['Error', 'Ocurrió un problema. Inténtalo de nuevo.']
+  'error' => ['Error', $errorMsg ?? 'Ocurrió un problema. Inténtalo de nuevo.']
     ];
 
     $titulo = $modalStatus === 'success' ? $mensajes[$action][0] : $mensajes['error'][0];
@@ -324,7 +334,8 @@ if (isset($_SESSION['status']) && isset($_SESSION['action'])):
 
 function filtrarYPaginar() {
   const filtroSeccion = document.getElementById('filtroSeccion').value;
-  const filtroCorte = document.getElementById('filtroCorte') ? document.getElementById('filtroCorte').value : '';
+  const filtroCorte = '';
+  const filtroEstado = document.getElementById('filtroEstado').value;
   const buscador = document.getElementById('buscador').value.toLowerCase();
 
   const rows = Array.from(document.querySelectorAll('#tablaEstudiantes tbody tr'));
@@ -332,14 +343,16 @@ function filtrarYPaginar() {
 
   rows.forEach(row => {
     const seccion = row.dataset.seccion || '';
-    const corte = row.dataset.corte || '';
+  const corte = '';
     const nombre = (row.querySelector('.nombre')?.textContent || '').toLowerCase();
 
     const coincideSeccion = !filtroSeccion || seccion === filtroSeccion;
     const coincideCorte = !filtroCorte || corte === filtroCorte;
-    const coincideNombre = nombre.includes(buscador);
+  const coincideNombre = nombre.includes(buscador);
+  const estadoCelda = row.querySelector('td:nth-child(4)')?.textContent.trim() || 'Activo';
+  const coincideEstado = (filtroEstado === '1' && estadoCelda === 'Activo') || (filtroEstado === '0' && estadoCelda === 'Eliminado');
 
-    if (coincideSeccion && coincideCorte && coincideNombre) {
+  if (coincideSeccion && coincideCorte && coincideNombre && coincideEstado) {
       row.dataset.visible = "true";
       visibles.push(row);
     } else {
@@ -389,10 +402,14 @@ function filtrarYPaginar() {
     filtrarYPaginar();
   });
 
-  document.getElementById('filtroCorte').addEventListener('change', () => {
-  currentPage = 1;
-  filtrarYPaginar();
-});
+  document.getElementById('filtroEstado').addEventListener('change', () => {
+    const url = new URL(window.location.href);
+    url.searchParams.set('status', document.getElementById('filtroEstado').value);
+    // Recarga para que el backend traiga Activos/Eliminados según corresponda
+    window.location.href = url.toString();
+  });
+
+  
 
 
   // Ejecutar al cargar
@@ -407,7 +424,7 @@ document.querySelectorAll('.btn-editar').forEach(btn => {
     fetch(`/app/controller/getByIdStudentController.php?id=${studentId}`)
       .then(response => response.json())
       .then(data => {
-        if (data.success) {
+  if (data.success) {
           const student = data.student;
           document.getElementById('edit-id').value = student.id;
           document.getElementById('edit-name').value = student.name;
@@ -419,12 +436,12 @@ document.querySelectorAll('.btn-editar').forEach(btn => {
           const modal = new bootstrap.Modal(document.getElementById('modalEditar'));
           modal.show();
         } else {
-          alert('No se pudo obtener la información del estudiante.');
+          showToast('No se pudo obtener la información del estudiante.');
         }
       })
       .catch(error => {
         console.error('Error:', error);
-        alert('Ocurrió un error al intentar obtener los datos del estudiante.');
+        showToast('Ocurrió un error al intentar obtener los datos del estudiante.');
       });
   });
 });
@@ -458,5 +475,85 @@ document.querySelectorAll('.btn-editar').forEach(btn => {
       };
     });
   });
+</script>
+
+<!-- Modal confirmar eliminar -->
+<div class="modal fade" id="modalConfirmarEliminar" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title">Confirmar eliminación</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        ¿Marcar como eliminado este estudiante?
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <a href="#" id="btnEliminarConfirmado" class="btn btn-danger">Eliminar</a>
+      </div>
+    </div>
+  </div>
+ </div>
+
+<!-- Modal confirmar restaurar -->
+<div class="modal fade" id="modalConfirmarRestaurar" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-secondary text-white">
+        <h5 class="modal-title">Confirmar restauración</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body">
+        ¿Restaurar este estudiante?
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cancelar</button>
+        <a href="#" id="btnRestaurarConfirmado" class="btn btn-secondary">Restaurar</a>
+      </div>
+    </div>
+  </div>
+ </div>
+
+<!-- Toast de notificaciones -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1080">
+  <div id="appToast" class="toast align-items-center text-bg-dark border-0" role="alert" aria-live="assertive" aria-atomic="true">
+    <div class="d-flex">
+      <div class="toast-body" id="appToastBody">Mensaje</div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+    </div>
+  </div>
+ </div>
+
+<script>
+// Helpers Bootstrap
+function showToast(msg) {
+  const el = document.getElementById('appToast');
+  document.getElementById('appToastBody').textContent = msg;
+  const toast = bootstrap.Toast.getOrCreateInstance(el);
+  toast.show();
+}
+
+// Confirmar eliminar (modal)
+document.querySelectorAll('.btn-confirmar-eliminar').forEach(btn => {
+  btn.addEventListener('click', function() {
+    const id = this.dataset.id;
+    const modal = new bootstrap.Modal(document.getElementById('modalConfirmarEliminar'));
+    const link = document.getElementById('btnEliminarConfirmado');
+    link.href = `/app/controller/deleteStudentController.php?id=${id}`;
+    modal.show();
+  });
+});
+
+// Confirmar restaurar (modal)
+document.querySelectorAll('.btn-confirmar-restaurar').forEach(btn => {
+  btn.addEventListener('click', function() {
+    const id = this.dataset.id;
+    const modal = new bootstrap.Modal(document.getElementById('modalConfirmarRestaurar'));
+    const link = document.getElementById('btnRestaurarConfirmado');
+    link.href = `/app/controller/restoreStudentController.php?id=${id}`;
+    modal.show();
+  });
+});
 </script>
 

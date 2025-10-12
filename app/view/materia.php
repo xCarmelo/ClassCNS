@@ -34,9 +34,9 @@
                 <button class="btn btn-sm btn-warning btn-editar" data-id="<?= $materia['id'] ?>">
                   <i class="bi bi-pencil-square"></i>
                 </button>
-                <a href="/app/controller/deleteMateriaController.php?id=<?= $materia['id'] ?>" class="btn btn-sm btn-danger" onclick="return confirm('¿Estás seguro de eliminar esta materia?');">
+                <button type="button" class="btn btn-sm btn-danger btn-eliminar" data-id="<?= $materia['id'] ?>">
                   <i class="bi bi-trash"></i>
-                </a>
+                </button>
               </td>
             </tr>
           <?php endforeach; ?>
@@ -133,6 +133,16 @@ if (isset($_SESSION['status'])):
 <?php require_once "../view/footer.php"; ?>
 
 <script>
+  // Toast util
+  function showToastMateria(message, variant = 'primary') {
+    let toastEl = document.getElementById('toastMateria');
+    let bodyEl = document.getElementById('toastMateriaBody');
+    if (!toastEl) return;
+    bodyEl.textContent = message;
+    toastEl.className = 'toast align-items-center border-0 text-bg-' + variant;
+    new bootstrap.Toast(toastEl, { delay: 3000 }).show();
+  }
+
   const modalEl = document.getElementById('modalResultado');
   if (modalEl) {
     const modal = new bootstrap.Modal(modalEl);
@@ -208,10 +218,54 @@ if (isset($_SESSION['status'])):
             document.getElementById('edit-name').value = data.materia.name;
             new bootstrap.Modal(document.getElementById('modalEditar')).show();
           } else {
-            alert('No se pudo obtener la información de la materia.');
+            showToastMateria('No se pudo obtener la información de la materia.', 'danger');
           }
         })
-        .catch(() => alert('Error al cargar los datos.'));
+        .catch(() => showToastMateria('Error al cargar los datos.', 'danger'));
     });
   });
+
+  // Confirmar eliminación
+  let idMateriaEliminar = null;
+  document.querySelectorAll('.btn-eliminar').forEach(btn => {
+    btn.addEventListener('click', function() {
+      idMateriaEliminar = this.getAttribute('data-id');
+      new bootstrap.Modal(document.getElementById('modalConfirmEliminarMateria')).show();
+    });
+  });
+
+  document.getElementById('btnConfirmEliminarMateria').addEventListener('click', function() {
+    if (idMateriaEliminar) {
+      window.location.href = `/app/controller/deleteMateriaController.php?id=${idMateriaEliminar}`;
+    }
+  });
 </script>
+
+<!-- Modal Confirmar Eliminación Materia -->
+<div class="modal fade" id="modalConfirmEliminarMateria" tabindex="-1" aria-labelledby="modalConfirmEliminarMateriaLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title" id="modalConfirmEliminarMateriaLabel">Eliminar materia</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        ¿Estás seguro de eliminar esta materia?
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-danger" id="btnConfirmEliminarMateria">Eliminar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast Notificaciones Materia -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1080;">
+  <div id="toastMateria" class="toast align-items-center text-bg-primary border-0" role="status" aria-live="polite" aria-atomic="true">
+    <div class="d-flex">
+      <div class="toast-body" id="toastMateriaBody">Notificación</div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+    </div>
+  </div>
+</div>

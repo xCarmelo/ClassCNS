@@ -10,7 +10,7 @@ require_once '../model/materia.php';
         $asuntos = $asuntoModel->getAllAsunto();
 
         $studentModel = new Student();
-        $students = $studentModel->getAllStudents();
+        $students = $studentModel->getAllStudents(1); // solo activos en selector
 
         $seccionModel = new Seccion();
         $secciones = $seccionModel->getAllSeccion();

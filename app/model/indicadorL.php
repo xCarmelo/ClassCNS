@@ -27,6 +27,43 @@ class IndicadorL {
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
+    // Obtener con filtros opcionales: año, corte, materia y sección
+    public function getAllFiltered(?int $anio = null, ?int $idCorte = null, ?int $idMateria = null, ?int $idSeccion = null): array {
+        $joins = [
+            "LEFT JOIN corte c ON i.idCorte = c.id",
+            "LEFT JOIN materia m ON i.idMateria = m.id"
+        ];
+        $wheres = [];
+        $params = [];
+
+        if ($anio !== null) {
+            $wheres[] = "i.`año` = :anio";
+            $params[':anio'] = $anio;
+        }
+        if ($idCorte !== null) {
+            $wheres[] = "i.idCorte = :idCorte";
+            $params[':idCorte'] = $idCorte;
+        }
+        if ($idMateria !== null) {
+            $wheres[] = "i.idMateria = :idMateria";
+            $params[':idMateria'] = $idMateria;
+        }
+        if ($idSeccion !== null) {
+            $joins[] = "INNER JOIN enlace e ON e.idIndicador = i.id AND e.idSeccion = :idSeccion";
+            $params[':idSeccion'] = $idSeccion;
+        }
+
+        $sql = "SELECT i.id, i.name, i.`año` AS anio, c.name AS corte, m.name AS materia, i.idCorte, i.idMateria
+                FROM `" . self::$table . "` i
+                " . implode("\n                ", $joins) . "
+                " . (!empty($wheres) ? ("WHERE " . implode(" AND ", $wheres)) : "") . "
+                ORDER BY i.id DESC";
+
+        $stmt = self::$pdo->prepare($sql);
+        $stmt->execute($params);
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    }
+
     # app/model/indicadorl.php
 public function getByFilters($idMateria, $anio, $idCorte) {
     $sql = "SELECT * FROM indicadorl 

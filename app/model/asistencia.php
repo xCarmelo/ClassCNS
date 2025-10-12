@@ -40,7 +40,7 @@ class Asistencia {
                 JOIN seccion s ON st.idSeccion = s.id 
                 JOIN materia m ON ses.idMateria = m.id 
                 JOIN tipoasistencia ta ON a.idTipoAsistencia = ta.id 
-                WHERE 1=1";
+                WHERE COALESCE(st.status,1) = 1";
         $params = [];
 
         if (!empty($filtros['seccion'])) {

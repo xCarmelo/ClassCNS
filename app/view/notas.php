@@ -55,10 +55,16 @@ th.criterio-celda, td[data-puntos] {
 .indicador-celda {
     max-width: 110px;
     white-space: nowrap;
-    overflow: hidden;
-    text-overflow: ellipsis;
+    overflow: visible; /* permitir que el tooltip se vea fuera del th */
     position: relative;
     cursor: pointer;
+}
+.indicador-label {
+    display: inline-block;
+    max-width: 100%;
+    white-space: nowrap;
+    overflow: hidden;
+    text-overflow: ellipsis; /* aplicar el ellipsis sólo al texto del indicador */
 }
 .indicador-tooltip {
     display: none;
@@ -66,15 +72,15 @@ th.criterio-celda, td[data-puntos] {
     left: 50%;
     top: 100%;
     transform: translateX(-50%);
-    background: #222;
+    background: #0d6efd; /* color de fondo cambiado para el tooltip del indicador */
     color: #fff;
     padding: 4px 12px;
     border-radius: 6px;
     white-space: pre-line;
     font-size: 0.95em;
-    z-index: 10;
+    z-index: 1000;
     margin-top: 2px;
-    box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+    box-shadow: 0 2px 8px rgba(13,110,253,0.35);
     min-width: 120px;
     max-width: 350px;
     text-align: left;
@@ -204,10 +210,8 @@ th.criterio-celda, td[data-puntos] {
                         $corto = mb_strimwidth($nombreInd, 0, 13, '...');
                     ?>
                         <th colspan="<?= $numC ?>" class="indicador-celda col-ind<?= $i ?>">
-                            <?= $corto ?>
-                            <?php if (mb_strlen($nombreInd) > 13): ?>
-                                <span class="indicador-tooltip"><?= $nombreInd ?></span>
-                            <?php endif; ?>
+                            <span class="indicador-label"><?= $corto ?></span>
+                            <span class="indicador-tooltip"><?= $nombreInd ?></span>
                         </th>
                     <?php endforeach; ?>
                     <th rowspan="2">Total Numérico</th>
@@ -220,13 +224,12 @@ th.criterio-celda, td[data-puntos] {
                         for ($j = 0; $j < max(3, count($lista)); $j++):
                             $c = $lista[$j] ?? null;
                     ?>
-                        <th class="criterio-celda col-ind<?= $i ?>">
+                        <th class="criterio-celda col-ind<?= $i ?>" data-descr="<?= htmlspecialchars($descr) ?>" data-puntos="<?= (int)$puntos ?>">
                             <?php if ($c):
                                 $descr = $c['name'] ?? $c['descripcion'] ?? '';
                                 $puntos = isset($c['puntos']) ? $c['puntos'] : (isset($c['puntaje']) ? $c['puntaje'] : 0);
                             ?>
                                 <span class="criterio-num"> <?= ($j+1) ?>(<?= (int)$puntos ?>) </span>
-                                <span class="criterio-tooltip"><?= htmlspecialchars($descr) ?></span>
                             <?php else: ?>
                                 <div class="small text-muted">-</div>
                             <?php endif; ?>
@@ -286,6 +289,17 @@ th.criterio-celda, td[data-puntos] {
     <?php endif; ?>
 </div>
 
+<!-- Toast de notificaciones -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1080;">
+    <div id="toastNotas" class="toast align-items-center text-bg-primary border-0" role="status" aria-live="polite" aria-atomic="true">
+        <div class="d-flex">
+            <div class="toast-body" id="toastNotasBody">Notificación</div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+    </div>
+  
+</div>
+
 <!-- Modal flotante para criterio -->
 <style>
 .criterio-modal {
@@ -306,6 +320,18 @@ th.criterio-celda, td[data-puntos] {
 </style>
 
 <script>
+(function(){
+    // Utilidad: toast para esta vista
+    window.showToastNotas = function(message, variant = 'primary') {
+        const toastEl = document.getElementById('toastNotas');
+        const bodyEl = document.getElementById('toastNotasBody');
+        if (!toastEl || !bodyEl) return;
+        bodyEl.textContent = message;
+        toastEl.className = 'toast align-items-center border-0 text-bg-' + variant;
+        const toast = new bootstrap.Toast(toastEl, { delay: 3000 });
+        toast.show();
+    }
+})();
 (function () {
     // --- modal flotante para criterios ---
     let criterioModal = null;
@@ -448,10 +474,10 @@ th.criterio-celda, td[data-puntos] {
                 if (inputNota) inputNota.value = json.nota;
                 calcularTotales();
             } else {
-                alert('Error guardando nota: ' + (json.error || 'error desconocido'));
+                showToastNotas('Error guardando nota: ' + (json.error || 'error desconocido'), 'danger');
             }
         } catch (err) {
-            alert('Error de red al guardar nota: ' + err.message);
+            showToastNotas('Error de red al guardar nota: ' + err.message, 'danger');
         }
     }
 
@@ -551,7 +577,7 @@ document.getElementById('btnExportarNotas').addEventListener('click', function()
     // Solo filas visibles
     const filas = Array.from(tabla.querySelectorAll('tbody tr')).filter(tr => tr.style.display !== 'none');
     if (filas.length === 0) {
-        alert('No hay notas para exportar con los filtros actuales.');
+    showToastNotas('No hay notas para exportar con los filtros actuales.', 'warning');
         return;
     }
     // Usar encabezados completos generados en PHP

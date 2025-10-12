@@ -19,6 +19,8 @@
                 <li><a class="dropdown-item" href="/app/controller/asistenciaController.php"><i class="bi bi-calendar-check"></i> Asistencia</a></li>
                 <li><a class="dropdown-item" href="/app/controller/getAsuntoController.php"><i class="bi bi-chat-dots-fill"></i> Asuntos</a></li>
                 <li><a class="dropdown-item" href="/app/controller/NotasController.php"><i class="bi bi-clipboard-check"></i> Calificaciones</a></li>
+                <li><hr class="dropdown-divider"></li>
+                <li><a class="dropdown-item" href="/app/controller/compareStudentsController.php"><i class="bi bi-shuffle"></i> Comparar estudiantes</a></li>
               </ul>
             </div>
         </li>

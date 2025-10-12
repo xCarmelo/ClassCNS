@@ -101,9 +101,9 @@
                   <button class="btn btn-sm btn-warning btn-editar" data-id="<?= $asunto['id'] ?>">
                     <i class="bi bi-pencil-square"></i>
                   </button>
-                  <a href="/app/controller/deleteAsuntoController.php?id=<?= $asunto['id'] ?>" class="btn btn-sm btn-danger" onclick="return confirm('¿Estás seguro de eliminar este asunto?');">
+                  <button type="button" class="btn btn-sm btn-danger btn-eliminar" data-id="<?= $asunto['id'] ?>">
                     <i class="bi bi-trash"></i>
-                  </a>
+                  </button>
                 </td>
               </tr>
             <?php endforeach; ?>
@@ -119,6 +119,36 @@
         <ul class="pagination justify-content-center" id="paginacionAsuntos"></ul>
       </nav>
     </div>
+      <!-- Modal Confirmar Eliminación -->
+      <div class="modal fade" id="modalConfirmEliminar" tabindex="-1" aria-labelledby="modalConfirmEliminarLabel" aria-hidden="true">
+        <div class="modal-dialog">
+          <div class="modal-content">
+            <div class="modal-header bg-danger text-white">
+              <h5 class="modal-title" id="modalConfirmEliminarLabel">Eliminar asunto</h5>
+              <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+            </div>
+            <div class="modal-body">
+              ¿Estás seguro de eliminar este asunto? Esta acción no se puede deshacer.
+            </div>
+            <div class="modal-footer">
+              <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+              <button type="button" class="btn btn-danger" id="btnConfirmEliminar">Eliminar</button>
+            </div>
+          </div>
+        </div>
+  
+      </div>
+
+      <!-- Toast de notificaciones -->
+      <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1080;">
+        <div id="appToast" class="toast align-items-center text-bg-primary border-0" role="status" aria-live="polite" aria-atomic="true">
+          <div class="d-flex">
+            <div class="toast-body" id="appToastBody">Notificación</div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+          </div>
+        </div>
+      </div>
+
   </div>
 </div>
 
@@ -265,12 +295,23 @@ if (isset($_SESSION['status'])):
 
 
 <script>
+  // Utilidad: mostrar toast
+  function showToast(message, variant = 'primary') {
+    const toastEl = document.getElementById('appToast');
+    const bodyEl = document.getElementById('appToastBody');
+    bodyEl.textContent = message;
+    // reset classes
+    toastEl.className = 'toast align-items-center border-0 text-bg-' + variant;
+    const toast = new bootstrap.Toast(toastEl, { delay: 3000 });
+    toast.show();
+  }
+
 // Exportar asuntos filtrados a Excel (sin columna Status)
 document.getElementById('btnExportarAsuntos').addEventListener('click', function() {
   const tabla = document.getElementById('tablaAsuntos');
   const filas = Array.from(tabla.querySelectorAll('tbody tr')).filter(tr => tr.dataset.visible === 'true');
   if (filas.length === 0) {
-    alert('No hay asuntos para exportar con los filtros actuales.');
+    showToast('No hay asuntos para exportar con los filtros actuales.', 'warning');
     return;
   }
   // Encabezados (excepto Status)
@@ -303,6 +344,8 @@ document.getElementById('btnExportarAsuntos').addEventListener('click', function
 
   // Modal Editar
   let modalEditar = new bootstrap.Modal(document.getElementById('modalEditar'));
+  let modalEliminar = new bootstrap.Modal(document.getElementById('modalConfirmEliminar'));
+  let idAsuntoAEliminar = null;
 
   document.querySelectorAll('.btn-editar').forEach(btn => {
     btn.addEventListener('click', function () {
@@ -322,11 +365,26 @@ document.getElementById('btnExportarAsuntos').addEventListener('click', function
             document.getElementById('edit-statuss').checked = asunto.statuss == 1;
             modalEditar.show();
           } else {
-            alert('No se pudo obtener la información del asunto.');
+            showToast('No se pudo obtener la información del asunto.', 'danger');
           }
         })
-        .catch(() => alert('Error al cargar los datos.'));
+        .catch(() => showToast('Error al cargar los datos.', 'danger'));
     });
+  });
+
+  // Abrir modal confirmar eliminación
+  document.querySelectorAll('.btn-eliminar').forEach(btn => {
+    btn.addEventListener('click', function () {
+      idAsuntoAEliminar = this.getAttribute('data-id');
+      modalEliminar.show();
+    });
+  });
+
+  // Confirmar eliminación
+  document.getElementById('btnConfirmEliminar').addEventListener('click', function() {
+    if (idAsuntoAEliminar) {
+      window.location.href = `/app/controller/deleteAsuntoController.php?id=${idAsuntoAEliminar}`;
+    }
   });
 
   // Modal seleccionar estudiante

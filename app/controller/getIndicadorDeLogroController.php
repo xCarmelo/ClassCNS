@@ -23,10 +23,16 @@ class IndicadorLController {
 
     // Mostrar lista de indicadores (NO tocar $_SESSION aquí)
     public function index() {
-        $indicadores = $this->indicadorModel->getAll();
+    // filtros opcionales
+    $anio      = isset($_GET['anio']) && $_GET['anio'] !== '' ? (int)$_GET['anio'] : null;
+    $idCorte   = isset($_GET['corte']) && $_GET['corte'] !== '' ? (int)$_GET['corte'] : null;
+    $idMateria = isset($_GET['materia']) && $_GET['materia'] !== '' ? (int)$_GET['materia'] : null;
+    $idSeccion = isset($_GET['seccion']) && $_GET['seccion'] !== '' ? (int)$_GET['seccion'] : null;
+
+    $indicadores = $this->indicadorModel->getAllFiltered($anio, $idCorte, $idMateria, $idSeccion);
         $cortes      = $this->corteModel->getAll();
         $materias    = $this->materiaModel->getAll();
-        $secciones   = $this->seccionModel->getAll();
+    $secciones   = $this->seccionModel->getAll();
 
         require __DIR__ . '/../view/indicadorL.php';
     }
@@ -61,17 +67,19 @@ class IndicadorLController {
             }
 
             $pdo->commit();
+            if (session_status() === PHP_SESSION_NONE) { session_start(); }
+            $_SESSION['status'] = 'success';
+            $_SESSION['action'] = 'add';
             header("Location: getIndicadorDeLogroController.php?action=index");
             exit;
         } catch (Exception $e) {
             if ($pdo->inTransaction()) $pdo->rollBack();
             error_log("Indicador store error: " . $e->getMessage());
 
-            // Aseguramos sesión antes de escribir el flash (esto es POST)
-            if (session_status() === PHP_SESSION_NONE) {
-                session_start();
-            }
-            $_SESSION['flash_error'] = "Error al guardar indicador: " . $e->getMessage();
+            if (session_status() === PHP_SESSION_NONE) { session_start(); }
+            $_SESSION['status'] = 'error';
+            $_SESSION['action'] = 'add';
+            $_SESSION['error_message'] = "Error al guardar indicador: " . $e->getMessage();
 
             header("Location: getIndicadorDeLogroController.php?action=index");
             exit;
@@ -108,16 +116,19 @@ class IndicadorLController {
             }
 
             $pdo->commit();
+            if (session_status() === PHP_SESSION_NONE) { session_start(); }
+            $_SESSION['status'] = 'success';
+            $_SESSION['action'] = 'edit';
             header("Location: getIndicadorDeLogroController.php?action=index");
             exit;
         } catch (Exception $e) {
             if ($pdo->inTransaction()) $pdo->rollBack();
             error_log("Indicador update error: " . $e->getMessage());
 
-            if (session_status() === PHP_SESSION_NONE) {
-                session_start();
-            }
-            $_SESSION['flash_error'] = "Error al actualizar indicador: " . $e->getMessage();
+            if (session_status() === PHP_SESSION_NONE) { session_start(); }
+            $_SESSION['status'] = 'error';
+            $_SESSION['action'] = 'edit';
+            $_SESSION['error_message'] = "Error al actualizar indicador: " . $e->getMessage();
 
             header("Location: getIndicadorDeLogroController.php?action=index");
             exit;
@@ -126,8 +137,19 @@ class IndicadorLController {
 
     // Eliminar indicador
     public function delete($id) {
-        $this->enlaceModel->deleteByIndicador($id);
-        $this->indicadorModel->delete($id);
+        try {
+            $this->enlaceModel->deleteByIndicador($id);
+            $this->indicadorModel->delete($id);
+            if (session_status() === PHP_SESSION_NONE) { session_start(); }
+            $_SESSION['status'] = 'success';
+            $_SESSION['action'] = 'delete';
+        } catch (Exception $e) {
+            error_log("Indicador delete error: " . $e->getMessage());
+            if (session_status() === PHP_SESSION_NONE) { session_start(); }
+            $_SESSION['status'] = 'error';
+            $_SESSION['action'] = 'delete';
+            $_SESSION['error_message'] = 'Error al eliminar indicador: ' . $e->getMessage();
+        }
         header("Location: getIndicadorDeLogroController.php?action=index");
         exit;
     }

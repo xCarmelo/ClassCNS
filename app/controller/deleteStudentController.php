@@ -9,7 +9,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['id'])) {
     $exito = $student->deleteStudent(); // Este método debería existir en tu modelo
 
     $_SESSION['status'] = $exito ? 'success' : 'error';
-    $_SESSION['action'] = 'delete';
+    $_SESSION['action'] = 'delete'; // borrado lógico (status=0)
 
     header("Location: getStudentController.php");
     exit();

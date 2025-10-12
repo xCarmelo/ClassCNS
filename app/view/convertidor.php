@@ -51,6 +51,15 @@
 
 
 <script>
+// Toast para notificaciones
+function showToastConv(message, variant = 'primary') {
+    let toastEl = document.getElementById('toastConv');
+    let bodyEl = document.getElementById('toastConvBody');
+    if (!toastEl) return;
+    bodyEl.textContent = message;
+    toastEl.className = 'toast align-items-center border-0 text-bg-' + variant;
+    new bootstrap.Toast(toastEl, { delay: 2500 }).show();
+}
 let recorder;
 let audioBlob;
 let todasLasVoces = [];
@@ -128,7 +137,7 @@ function mostrarVoces(voces) {
         btnSeleccionar.textContent = "Seleccionar";
         btnSeleccionar.onclick = () => {
             vozSeleccionada = voz;
-            alert(`Voz seleccionada: ${voz.name} (${voz.lang})`);
+            showToastConv(`Voz seleccionada: ${voz.name} (${voz.lang})`, 'success');
         };
         tdAccion.appendChild(btnSeleccionar);
 
@@ -171,8 +180,8 @@ document.getElementById("buscadorVoz").addEventListener("input", function () {
 
 function leerTexto() {
     const texto = document.getElementById("texto").value;
-    if (!texto) return alert("Escribe algún texto.");
-    if (!vozSeleccionada) return alert("Selecciona una voz.");
+    if (!texto) return showToastConv("Escribe algún texto.", 'warning');
+    if (!vozSeleccionada) return showToastConv("Selecciona una voz.", 'warning');
 
     const mensaje = new SpeechSynthesisUtterance(texto);
     mensaje.voice = vozSeleccionada;
@@ -202,7 +211,7 @@ function cancelarAudio() {
 }
 
 function descargarAudio() {
-    if (!audioBlob) return alert("Primero reproduce y graba el audio.");
+    if (!audioBlob) return showToastConv("Primero reproduce y graba el audio.", 'warning');
     const url = URL.createObjectURL(audioBlob);
     const a = document.createElement("a");
     a.href = url;
@@ -218,8 +227,8 @@ if (typeof speechSynthesis !== "undefined") {
 
 function descargarDirecto() {
     const texto = document.getElementById("texto").value;
-    if (!texto) return alert("Escribe algún texto.");
-    if (!vozSeleccionada) return alert("Selecciona una voz primero.");
+    if (!texto) return showToastConv("Escribe algún texto.", 'warning');
+    if (!vozSeleccionada) return showToastConv("Selecciona una voz primero.", 'warning');
 
     const mensaje = new SpeechSynthesisUtterance(texto);
     mensaje.voice = vozSeleccionada;
@@ -251,3 +260,13 @@ function descargarDirecto() {
 }
 
 </script>
+
+<!-- Toast Notificaciones Convertidor -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1080;">
+    <div id="toastConv" class="toast align-items-center text-bg-primary border-0" role="status" aria-live="polite" aria-atomic="true">
+        <div class="d-flex">
+            <div class="toast-body" id="toastConvBody">Notificación</div>
+            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+        </div>
+    </div>
+</div>

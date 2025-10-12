@@ -63,6 +63,7 @@
             <tbody>
                 <?php
                 foreach ($estudiantes as $est) {
+                    if (isset($est['status']) && (int)$est['status'] === 0) { continue; }
                     // Colorear si tiene fin = 1
                     $claseFila = (!empty($est['fin']) && intval($est['fin']) === 1) ? ' table-danger' : '';
                     echo '<tr class="fila-estudiante' . $claseFila . '">';
@@ -88,7 +89,7 @@
 
         <button type="submit" class="btn btn-success mb-3">Guardar</button>
 
-        <!-- Modal Bootstrap -->
+    <!-- Modal aplicar tipo asistencia masivo -->
         <div class="modal fade" id="modalTipoAsistencia" tabindex="-1" aria-labelledby="modalTipoLabel" aria-hidden="true">
           <div class="modal-dialog">
             <div class="modal-content">
@@ -113,32 +114,77 @@
             </div>
           </div>
         </div>
+        
+                <!-- Modal confirmar guardado -->
+                <div class="modal fade" id="modalConfirmGuardar" tabindex="-1" aria-labelledby="modalConfirmGuardarLabel" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header bg-warning">
+                                <h5 class="modal-title" id="modalConfirmGuardarLabel">Confirmar guardado</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                            </div>
+                            <div class="modal-body">
+                                ¿Seguro que deseas guardar la asistencia?
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                <button type="button" class="btn btn-primary" id="btnConfirmarGuardar">Sí, guardar</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Toast de notificaciones -->
+                <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1080;">
+                    <div id="toastAsistencia" class="toast align-items-center text-bg-primary border-0" role="status" aria-live="polite" aria-atomic="true">
+                        <div class="d-flex">
+                            <div class="toast-body" id="toastAsistenciaBody">Notificación</div>
+                            <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+                        </div>
+                    </div>
+                </div>
     </form>
 </div>
 
 <script>
+function showToastAsistencia(message, variant = 'primary') {
+        const toastEl = document.getElementById('toastAsistencia');
+        const bodyEl = document.getElementById('toastAsistenciaBody');
+        bodyEl.textContent = message;
+        toastEl.className = 'toast align-items-center border-0 text-bg-' + variant;
+        const toast = new bootstrap.Toast(toastEl, { delay: 3000 });
+        toast.show();
+}
+
+let modalConfirmGuardar;
+document.addEventListener('DOMContentLoaded', function() {
+        modalConfirmGuardar = new bootstrap.Modal(document.getElementById('modalConfirmGuardar'));
+});
+
 function confirmarGuardarNuevaAsistencia() {
-    var fecha = document.querySelector('input[name="fecha"]');
-    var tema = document.querySelector('input[name="nombreDelTema"]');
-    if (!fecha.value) {
-        alert('Debes seleccionar una fecha.');
-        fecha.focus();
-        return false;
-    }
-    if (!tema.value.trim()) {
-        alert('Debes ingresar el nombre del tema.');
-        tema.focus();
-        return false;
-    }
-    var selects = document.querySelectorAll('.tipo-asistencia-select');
-    for (var i = 0; i < selects.length; i++) {
-        if (!selects[i].value) {
-            alert('Debes seleccionar el tipo de asistencia para todos los estudiantes mostrados.');
-            selects[i].focus();
-            return false;
+        var fecha = document.querySelector('input[name="fecha"]');
+        var tema = document.querySelector('input[name="nombreDelTema"]');
+        if (!fecha.value) {
+                showToastAsistencia('Debes seleccionar una fecha.', 'warning');
+                fecha.focus();
+                return false;
         }
-    }
-    return confirm('¿Seguro que deseas guardar la asistencia?');
+        if (!tema.value.trim()) {
+                showToastAsistencia('Debes ingresar el nombre del tema.', 'warning');
+                tema.focus();
+                return false;
+        }
+        var selects = document.querySelectorAll('.tipo-asistencia-select');
+        for (var i = 0; i < selects.length; i++) {
+                if (!selects[i].value) {
+                        showToastAsistencia('Debes seleccionar el tipo de asistencia para todos los estudiantes mostrados.', 'warning');
+                        selects[i].focus();
+                        return false;
+                }
+        }
+        // Abrir modal de confirmación en lugar de confirm()
+        modalConfirmGuardar.show();
+        return false; // prevenir envío hasta confirmar
 }
 
 document.addEventListener('DOMContentLoaded', function() {
@@ -176,7 +222,7 @@ document.addEventListener('DOMContentLoaded', function() {
     btnAplicarModal.addEventListener('click', function() {
         const tipo = document.getElementById('tipoAsistenciaMasivo').value;
         if (!tipo) {
-            alert('Selecciona un tipo de asistencia.');
+            showToastAsistencia('Selecciona un tipo de asistencia.', 'warning');
             return;
         }
         document.querySelectorAll('.fila-estudiante.selected').forEach(function(row) {
@@ -185,6 +231,12 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         var modal = bootstrap.Modal.getInstance(document.getElementById('modalTipoAsistencia'));
         modal.hide();
+    });
+
+    // Confirmar guardado desde modal
+    document.getElementById('btnConfirmarGuardar').addEventListener('click', function() {
+        modalConfirmGuardar.hide();
+        document.getElementById('formNuevaAsistencia').submit();
     });
 });
 </script>

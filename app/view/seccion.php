@@ -34,9 +34,9 @@
                 <button class="btn btn-sm btn-warning btn-editar" data-id="<?= $seccion['id'] ?>">
                   <i class="bi bi-pencil-square"></i>
                 </button>
-                <a href="/app/controller/deleteSeccionController.php?id=<?= $seccion['id'] ?>" class="btn btn-sm btn-danger" onclick="return confirm('Estás seguro de eliminar esta sección?');">
+                <button type="button" class="btn btn-sm btn-danger btn-eliminar" data-id="<?= $seccion['id'] ?>">
                   <i class="bi bi-trash"></i>
-                </a>
+                </button>
               </td>
             </tr>
           <?php endforeach; ?>
@@ -130,6 +130,16 @@ if (isset($_SESSION['status'])):
 <?php require_once "../view/footer.php"; ?>
 
 <script>
+  // Toast
+  function showToastSeccion(message, variant = 'primary') {
+    let toastEl = document.getElementById('toastSeccion');
+    let bodyEl = document.getElementById('toastSeccionBody');
+    if (!toastEl) return;
+    bodyEl.textContent = message;
+    toastEl.className = 'toast align-items-center border-0 text-bg-' + variant;
+    new bootstrap.Toast(toastEl, { delay: 3000 }).show();
+  }
+
   // Modal de resultado si existe
   const modalEl = document.getElementById('modalResultado');
   if (modalEl) {
@@ -207,10 +217,54 @@ if (isset($_SESSION['status'])):
             document.getElementById('edit-name').value = data.seccion.name;
             new bootstrap.Modal(document.getElementById('modalEditar')).show();
           } else {
-            alert('No se pudo obtener la información de la sección.');
+            showToastSeccion('No se pudo obtener la información de la sección.', 'danger');
           }
         })
-        .catch(() => alert('Error al cargar los datos.'));
+        .catch(() => showToastSeccion('Error al cargar los datos.', 'danger'));
     });
   });
+
+  // Confirmar eliminación
+  let idSeccionEliminar = null;
+  document.querySelectorAll('.btn-eliminar').forEach(btn => {
+    btn.addEventListener('click', function() {
+      idSeccionEliminar = this.getAttribute('data-id');
+      new bootstrap.Modal(document.getElementById('modalConfirmEliminarSeccion')).show();
+    });
+  });
+
+  document.getElementById('btnConfirmEliminarSeccion').addEventListener('click', function() {
+    if (idSeccionEliminar) {
+      window.location.href = `/app/controller/deleteSeccionController.php?id=${idSeccionEliminar}`;
+    }
+  });
 </script>
+
+<!-- Modal Confirmar Eliminación Sección -->
+<div class="modal fade" id="modalConfirmEliminarSeccion" tabindex="-1" aria-labelledby="modalConfirmEliminarSeccionLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title" id="modalConfirmEliminarSeccionLabel">Eliminar sección</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        ¿Estás seguro de eliminar esta sección?
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-danger" id="btnConfirmEliminarSeccion">Eliminar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast Notificaciones Sección -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1080;">
+  <div id="toastSeccion" class="toast align-items-center text-bg-primary border-0" role="status" aria-live="polite" aria-atomic="true">
+    <div class="d-flex">
+      <div class="toast-body" id="toastSeccionBody">Notificación</div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+    </div>
+  </div>
+</div>

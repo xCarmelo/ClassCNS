@@ -40,7 +40,8 @@ public function getAllAsunto() {
                 FROM asunto a
                 JOIN materia m ON a.idMateria = m.id
                 JOIN student st ON a.idStudent = st.id
-                JOIN seccion s ON st.idSeccion = s.id';
+                JOIN seccion s ON st.idSeccion = s.id
+                WHERE COALESCE(st.status,1) = 1';
 
         $smt = self::$pdo->prepare($sql);
 
