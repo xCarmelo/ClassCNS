@@ -176,8 +176,13 @@ th.criterio-celda, td[data-puntos] {
         </div>
     </form>
 
-    <?php if (empty($estudiantes) || empty($indicadores)): ?>
+    <?php
+    $tieneFiltros = isset($_GET['seccion'], $_GET['materia'], $_GET['anio'], $_GET['corte'])
+                    && $_GET['seccion'] !== '' && $_GET['materia'] !== '' && $_GET['anio'] !== '' && $_GET['corte'] !== '';
+    if (!$tieneFiltros): ?>
         <div class="alert alert-info">Seleccione los 4 filtros (Sección, Materia, Año y Corte) para ver la tabla.</div>
+    <?php elseif (empty($estudiantes) || empty($indicadores)): ?>
+        <div class="alert alert-warning">No hay datos para los filtros seleccionados. Verifique que existan Indicadores vinculados a la Sección mediante Enlace y que haya estudiantes activos.</div>
     <?php else: ?>
 
     <!-- Filtro de búsqueda por nombre y checkboxes de columnas -->
@@ -464,15 +469,20 @@ th.criterio-celda, td[data-puntos] {
         body.append('nota', notaFinal);
 
         try {
-            const resp = await fetch('../controller/NotasController.php?action=save', {
+            const url = '/app/controller/NotasController.php?action=save';
+            const resp = await fetch(url, {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
                 body: body.toString()
             });
-            const json = await resp.json();
+            let json;
+            try { json = await resp.json(); } catch(parseErr) {
+                throw new Error('Respuesta no JSON (' + resp.status + ').');
+            }
             if (resp.ok && json.ok) {
                 if (inputNota) inputNota.value = json.nota;
                 calcularTotales();
+                showToastNotas('Nota guardada.', 'success');
             } else {
                 showToastNotas('Error guardando nota: ' + (json.error || 'error desconocido'), 'danger');
             }

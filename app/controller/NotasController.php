@@ -165,7 +165,10 @@ $criterios   = [];
 $notas       = [];
 
 if ($idSeccion && $idMateria && $anio && $idCorte) {
-    if (method_exists($indicadorModel, 'getByFilters')) {
+    // Preferir método que considera la sección (enlace) si existe
+    if (method_exists($indicadorModel, 'getAllFiltered')) {
+        $indicadores = $indicadorModel->getAllFiltered($anio, $idCorte, $idMateria, $idSeccion);
+    } elseif (method_exists($indicadorModel, 'getByFilters')) {
         $indicadores = $indicadorModel->getByFilters($idMateria, $anio, $idCorte);
     } elseif (method_exists($indicadorModel, 'getAll')) {
         $tmp = $indicadorModel->getAll();

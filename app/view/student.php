@@ -66,7 +66,7 @@
                 <tbody>
                     <?php if (!empty($students)): ?>
                         <?php foreach ($students as $index => $student): ?>
-                            <tr data-seccion="<?= htmlspecialchars($student['idSeccion']) ?> ">
+                            <tr data-seccion="<?= (int)$student['idSeccion'] ?>">
                                 <td><?= $student["NumerodeLista"] ?></td>
                                 <td class="nombre"><?= htmlspecialchars($student['name']) ?></td>
                                 <td><?= htmlspecialchars($student['seccion_name']) ?></td>
@@ -333,7 +333,7 @@ if (isset($_SESSION['status']) && isset($_SESSION['action'])):
   let currentPage = 1;
 
 function filtrarYPaginar() {
-  const filtroSeccion = document.getElementById('filtroSeccion').value;
+  const filtroSeccion = (document.getElementById('filtroSeccion').value || '').trim();
   const filtroCorte = '';
   const filtroEstado = document.getElementById('filtroEstado').value;
   const buscador = document.getElementById('buscador').value.toLowerCase();
@@ -342,11 +342,11 @@ function filtrarYPaginar() {
   let visibles = [];
 
   rows.forEach(row => {
-    const seccion = row.dataset.seccion || '';
+    const seccion = (row.dataset.seccion || '').trim();
   const corte = '';
     const nombre = (row.querySelector('.nombre')?.textContent || '').toLowerCase();
 
-    const coincideSeccion = !filtroSeccion || seccion === filtroSeccion;
+  const coincideSeccion = !filtroSeccion || seccion === filtroSeccion;
     const coincideCorte = !filtroCorte || corte === filtroCorte;
   const coincideNombre = nombre.includes(buscador);
   const estadoCelda = row.querySelector('td:nth-child(4)')?.textContent.trim() || 'Activo';

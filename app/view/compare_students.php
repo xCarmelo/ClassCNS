@@ -10,13 +10,67 @@
     Sube un archivo Excel con dos columnas: <strong>name</strong> y <strong>seccion</strong>. La comparación se hará contra los estudiantes activos (no eliminados lógicamente).
   </div>
 
+  <?php $last = $_SESSION['last_compare'] ?? null; $hasLast = !empty($last['fileOrderBySec']); ?>
   <form action="../controller/compareStudentsController.php?action=compare" method="post" enctype="multipart/form-data" class="card p-3 mb-4">
     <div class="mb-3">
       <label for="archivo" class="form-label">Archivo Excel (XLSX/XLS/CSV)</label>
-      <input type="file" class="form-control" id="archivo" name="archivo" accept=".xlsx,.xls,.csv" required>
+      <div class="input-group">
+        <input type="file" class="form-control" id="archivo" name="archivo" accept=".xlsx,.xls,.csv" <?= $hasLast ? '' : 'required' ?> <?= $hasLast ? 'disabled' : '' ?>>
+        <?php if ($hasLast): ?>
+          <span class="input-group-text bg-light">
+            <i class="bi bi-file-earmark-excel"></i>
+            <span class="ms-1">
+              <?= htmlspecialchars($last['uploaded_name'] ?? 'Archivo en memoria') ?>
+              <small class="text-muted ms-1">(cargado <?= isset($last['uploaded_time']) ? date('d/m/Y H:i', (int)$last['uploaded_time']) : '' ?>)</small>
+            </span>
+          </span>
+        <?php endif; ?>
+      </div>
+      <?php if ($hasLast): ?>
+      <div class="form-check mt-2">
+        <input class="form-check-input" type="checkbox" value="1" id="chkReemplazarArchivo">
+        <label class="form-check-label" for="chkReemplazarArchivo">
+          Reemplazar archivo (habilitar selector para subir uno nuevo)
+        </label>
+      </div>
+      <script>
+        (function(){
+          const chk = document.getElementById('chkReemplazarArchivo');
+          const inp = document.getElementById('archivo');
+          chk?.addEventListener('change', ()=>{
+            if (chk.checked) {
+              inp.removeAttribute('disabled');
+              inp.setAttribute('required','required');
+            } else {
+              inp.setAttribute('disabled','disabled');
+              inp.removeAttribute('required');
+              inp.value = '';
+            }
+          });
+        })();
+      </script>
+      <?php endif; ?>
     </div>
     <button type="submit" class="btn btn-primary">Comparar</button>
+    <?php if ($hasLast): ?>
+      <a href="../controller/compareStudentsController.php?action=recompare" class="btn btn-outline-info ms-2">Usar archivo en memoria</a>
+    <?php endif; ?>
   </form>
+
+  <?php if (!empty($_SESSION['action']) && $_SESSION['action']==='apply_order'): ?>
+    <?php if (!empty($_SESSION['status']) && $_SESSION['status']==='success'): ?>
+      <div class="alert alert-success alert-dismissible fade show" role="alert">
+        Orden aplicado correctamente.
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    <?php elseif (!empty($_SESSION['status']) && $_SESSION['status']==='error'): ?>
+      <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        No se pudo aplicar el orden. <?= isset($_SESSION['error_msg']) ? htmlspecialchars($_SESSION['error_msg']) : '' ?>
+        <button type="button" class="btn-close" data-bs-dismiss="alert" aria-label="Close"></button>
+      </div>
+    <?php endif; ?>
+    <?php unset($_SESSION['action'], $_SESSION['status'], $_SESSION['error_msg']); ?>
+  <?php endif; ?>
 
   <?php if (!empty($summary)): ?>
     <?php if (!empty($summary['error'])): ?>
@@ -31,6 +85,11 @@
           </button>
         </div>
         <div class="d-flex gap-2">
+          <?php if (!empty($_SESSION['last_compare']['fileOrderBySec'])): ?>
+            <a href="../controller/compareStudentsController.php?action=recompare" class="btn btn-info" title="Recalcular con el último archivo cargado">
+              <i class="bi bi-arrow-clockwise"></i> Volver a comparar
+            </a>
+          <?php endif; ?>
           <button id="btnExpandAll" class="btn btn-outline-primary" type="button"><i class="bi bi-arrows-angle-expand"></i> Expandir todo</button>
           <button id="btnCollapseAll" class="btn btn-outline-secondary" type="button"><i class="bi bi-arrows-angle-contract"></i> Contraer todo</button>
           <button id="btnExportCompare" class="btn btn-success" type="button">
@@ -91,16 +150,83 @@
 
       <div class="accordion" id="accordionDetalles">
         <div class="accordion-item">
+          <h2 class="accordion-header" id="headOrden">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#secOrden">Orden por sección</button>
+          </h2>
+          <div id="secOrden" class="accordion-collapse collapse">
+            <div class="accordion-body">
+              <?php $order = $details['orderReport'] ?? null; ?>
+              <?php if ($order): ?>
+                <div class="mb-2">
+                  <span class="badge bg-success">Secciones OK: <?= (int)($order['summary']['ok'] ?? 0) ?></span>
+                  <span class="badge bg-warning text-dark">Con diferencias: <?= (int)($order['summary']['diff'] ?? 0) ?></span>
+                </div>
+        <div class="table-responsive">
+                  <table class="table table-sm table-bordered">
+                    <thead class="table-light">
+          <tr><th>Sección</th><th>Estado</th><th>Conteo BD</th><th>Conteo Archivo</th><th>Primeras diferencias (posición, BD vs Archivo)</th><th>Acciones</th></tr>
+                    </thead>
+                    <tbody>
+                      <?php $fileOrderBySecLocal = $_SESSION['last_compare']['fileOrderBySec'] ?? []; ?>
+                      <?php foreach (($order['bySection'] ?? []) as $secKey => $info): ?>
+                        <tr>
+                          <td><?= htmlspecialchars($secKey) ?></td>
+                          <td>
+                            <?php if (($info['status'] ?? '') === 'ok'): ?>
+                              <span class="badge bg-success">OK</span>
+                            <?php else: ?>
+                              <span class="badge bg-warning text-dark">Diferente</span>
+                            <?php endif; ?>
+                          </td>
+                          <td><?= (int)($info['dbCount'] ?? 0) ?></td>
+                          <td><?= (int)($info['fileCount'] ?? 0) ?></td>
+                          <td>
+                            <?php if (!empty($info['mismatches'])): ?>
+                              <ul class="mb-0">
+                                <?php foreach ($info['mismatches'] as $mm): ?>
+                                  <li>#<?= (int)$mm['pos'] ?>: <strong><?= htmlspecialchars($mm['db']) ?></strong> vs <strong><?= htmlspecialchars($mm['file']) ?></strong></li>
+                                <?php endforeach; ?>
+                              </ul>
+                            <?php else: ?>
+                              <em>—</em>
+                            <?php endif; ?>
+                          </td>
+              <td>
+                            <?php
+                              $hasFileOrder = isset($_SESSION['last_compare']['fileOrderBySec']) && isset($_SESSION['last_compare']['fileOrderBySec'][$secKey]);
+                            ?>
+                            <?php if (($info['status'] ?? '') === 'diff' && (int)($info['fileCount'] ?? 0) > 0 && $hasFileOrder): ?>
+                <?php $payload = base64_encode(json_encode($fileOrderBySecLocal[$secKey] ?? [])); ?>
+                <button type="button" class="btn btn-sm btn-primary" data-action="apply-order" data-sec="<?= htmlspecialchars($secKey) ?>" data-order="<?= htmlspecialchars($payload) ?>">
+                                Aplicar orden del archivo
+                              </button>
+                            <?php else: ?>
+                <button type="button" class="btn btn-sm btn-secondary" disabled>—</button>
+                            <?php endif; ?>
+                          </td>
+                        </tr>
+                      <?php endforeach; ?>
+                    </tbody>
+                  </table>
+                </div>
+              <?php else: ?>
+                <em>Sin datos de orden.</em>
+              <?php endif; ?>
+            </div>
+          </div>
+        </div>
+        <div class="accordion-item">
           <h2 class="accordion-header" id="headNuevos">
             <button class="accordion-button" type="button" data-bs-toggle="collapse" data-bs-target="#secNuevos">Nuevos (<?= (int)$summary['new'] ?>)</button>
           </h2>
-          <div id="secNuevos" class="accordion-collapse collapse show" data-bs-parent="#accordionDetalles">
+          <div id="secNuevos" class="accordion-collapse collapse show">
             <div class="accordion-body">
+              <p class="text-muted small mb-2">Del archivo: estos nombres no existen en la base de datos (estudiantes activos).</p>
               <?php if (!empty($details['newStudents'])): ?>
               <div class="table-responsive">
-                <table class="table table-sm table-striped table-hover table-bordered compare-table" data-section="nuevos"><thead class="table-light"><tr><th>Nombre</th><th>Sección</th></tr></thead><tbody>
+                <table class="table table-sm table-striped table-hover table-bordered compare-table" data-section="nuevos"><thead class="table-light"><tr><th>Nombre</th><th>Sección</th><th>N° Lista (Archivo)</th><th>N° Lista (BD)</th></tr></thead><tbody>
                   <?php foreach ($details['newStudents'] as $r): ?>
-                  <tr><td><?= htmlspecialchars($r['name']) ?></td><td><?= htmlspecialchars($r['seccion']) ?></td></tr>
+                  <tr><td><?= htmlspecialchars($r['name']) ?></td><td><?= htmlspecialchars($r['seccion']) ?></td><td><?= isset($r['numArchivo']) && $r['numArchivo']!==null ? (int)$r['numArchivo'] : '' ?></td><td><?= isset($r['numero']) && $r['numero']!==null ? (int)$r['numero'] : '' ?></td></tr>
                   <?php endforeach; ?>
                 </tbody></table>
               </div>
@@ -115,13 +241,14 @@
           <h2 class="accordion-header" id="headMovidos">
             <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#secMovidos">Movidos (<?= (int)$summary['moved'] ?>)</button>
           </h2>
-          <div id="secMovidos" class="accordion-collapse collapse" data-bs-parent="#accordionDetalles">
+          <div id="secMovidos" class="accordion-collapse collapse">
             <div class="accordion-body">
+              <p class="text-muted small mb-2">Mismo estudiante en la base de datos, pero con sección distinta entre la BD (Desde) y tu archivo (Hacia).</p>
               <?php if (!empty($details['movedStudents'])): ?>
               <div class="table-responsive">
-                <table class="table table-sm table-striped table-hover table-bordered compare-table" data-section="movidos"><thead class="table-light"><tr><th>Nombre</th><th>Desde</th><th>Hacia</th></tr></thead><tbody>
+                <table class="table table-sm table-striped table-hover table-bordered compare-table" data-section="movidos"><thead class="table-light"><tr><th>Nombre</th><th>Desde</th><th>Hacia</th><th>N° Lista (Archivo)</th><th>N° Lista (BD)</th></tr></thead><tbody>
                   <?php foreach ($details['movedStudents'] as $r): ?>
-                  <tr><td><?= htmlspecialchars($r['name']) ?></td><td><?= htmlspecialchars($r['from']) ?></td><td><?= htmlspecialchars($r['to']) ?></td></tr>
+                  <tr><td><?= htmlspecialchars($r['name']) ?></td><td><?= htmlspecialchars($r['from']) ?></td><td><?= htmlspecialchars($r['to']) ?></td><td><?= isset($r['numArchivo']) && $r['numArchivo']!==null ? (int)$r['numArchivo'] : '' ?></td><td><?= !empty($r['list_from']) ? htmlspecialchars($r['list_from']) : '' ?></td></tr>
                   <?php endforeach; ?>
                 </tbody></table>
               </div>
@@ -136,13 +263,14 @@
           <h2 class="accordion-header" id="headFaltantes">
             <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#secFaltantes">Faltantes (<?= (int)$summary['missing'] ?>)</button>
           </h2>
-          <div id="secFaltantes" class="accordion-collapse collapse" data-bs-parent="#accordionDetalles">
+          <div id="secFaltantes" class="accordion-collapse collapse">
             <div class="accordion-body">
+              <p class="text-muted small mb-2">Estudiantes activos que están en la base de datos, pero no aparecen en tu archivo para su misma sección.</p>
               <?php if (!empty($details['missingStudents'])): ?>
               <div class="table-responsive">
-                <table class="table table-sm table-striped table-hover table-bordered compare-table" data-section="faltantes"><thead class="table-light"><tr><th>Nombre</th><th>Sección</th></tr></thead><tbody>
+                <table class="table table-sm table-striped table-hover table-bordered compare-table" data-section="faltantes"><thead class="table-light"><tr><th>Nombre</th><th>Sección</th><th>N° Lista (Archivo)</th><th>N° Lista (BD)</th></tr></thead><tbody>
                   <?php foreach ($details['missingStudents'] as $r): ?>
-                  <tr><td><?= htmlspecialchars($r['name']) ?></td><td><?= htmlspecialchars($r['seccion']) ?></td></tr>
+                  <tr><td><?= htmlspecialchars($r['name']) ?></td><td><?= htmlspecialchars($r['seccion']) ?></td><td><?= isset($r['numArchivo']) && $r['numArchivo']!==null ? (int)$r['numArchivo'] : '' ?></td><td><?= isset($r['numero']) && $r['numero']!==null ? (int)$r['numero'] : '' ?></td></tr>
                   <?php endforeach; ?>
                 </tbody></table>
               </div>
@@ -157,13 +285,14 @@
           <h2 class="accordion-header" id="headDup">
             <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#secDup">Duplicados en archivo (<?= (int)$summary['duplicates'] ?>)</button>
           </h2>
-          <div id="secDup" class="accordion-collapse collapse" data-bs-parent="#accordionDetalles">
+          <div id="secDup" class="accordion-collapse collapse">
             <div class="accordion-body">
+              <p class="text-muted small mb-2">Registros repetidos dentro del archivo subido.</p>
               <?php if (!empty($details['duplicatesInFile'])): ?>
               <div class="table-responsive">
-                <table class="table table-sm table-striped table-hover table-bordered compare-table" data-section="duplicados"><thead class="table-light"><tr><th>Nombre</th><th>Sección</th></tr></thead><tbody>
+                <table class="table table-sm table-striped table-hover table-bordered compare-table" data-section="duplicados"><thead class="table-light"><tr><th>Nombre</th><th>Sección</th><th>N° Lista (Archivo)</th><th>N° Lista (BD)</th></tr></thead><tbody>
                   <?php foreach ($details['duplicatesInFile'] as $r): ?>
-                  <tr><td><?= htmlspecialchars($r['name']) ?></td><td><?= htmlspecialchars($r['seccion']) ?></td></tr>
+                  <tr><td><?= htmlspecialchars($r['name']) ?></td><td><?= htmlspecialchars($r['seccion']) ?></td><td><?= isset($r['numArchivo']) && $r['numArchivo']!==null ? (int)$r['numArchivo'] : '' ?></td><td></td></tr>
                   <?php endforeach; ?>
                 </tbody></table>
               </div>
@@ -178,13 +307,14 @@
           <h2 class="accordion-header" id="headUnknown">
             <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#secUnknown">Secciones desconocidas (<?= (int)$summary['unknown_sections'] ?>)</button>
           </h2>
-          <div id="secUnknown" class="accordion-collapse collapse" data-bs-parent="#accordionDetalles">
+          <div id="secUnknown" class="accordion-collapse collapse">
             <div class="accordion-body">
+              <p class="text-muted small mb-2">La sección indicada en el archivo no existe en la base de datos. Revisa nombres y acentos de las secciones.</p>
               <?php if (!empty($details['unknownSections'])): ?>
               <div class="table-responsive">
-                <table class="table table-sm table-striped table-hover table-bordered compare-table" data-section="desconocidas"><thead class="table-light"><tr><th>Nombre</th><th>Sección en archivo</th></tr></thead><tbody>
+                <table class="table table-sm table-striped table-hover table-bordered compare-table" data-section="desconocidas"><thead class="table-light"><tr><th>Nombre</th><th>Sección en archivo</th><th>N° Lista (Archivo)</th><th>N° Lista (BD)</th></tr></thead><tbody>
                   <?php foreach ($details['unknownSections'] as $r): ?>
-                  <tr><td><?= htmlspecialchars($r['name']) ?></td><td><?= htmlspecialchars($r['seccion']) ?></td></tr>
+                  <tr><td><?= htmlspecialchars($r['name']) ?></td><td><?= htmlspecialchars($r['seccion']) ?></td><td><?= isset($r['numArchivo']) && $r['numArchivo']!==null ? (int)$r['numArchivo'] : '' ?></td><td></td></tr>
                   <?php endforeach; ?>
                 </tbody></table>
               </div>
@@ -195,9 +325,32 @@
           </div>
         </div>
       </div>
+  
+  <!-- Modal Aplicar Orden -->
+  <div class="modal fade" id="modalApplyOrder" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog">
+      <div class="modal-content">
+        <div class="modal-header">
+          <h5 class="modal-title">Aplicar orden del archivo</h5>
+          <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Close"></button>
+        </div>
+    <form action="../controller/compareStudentsController.php?action=apply_order" method="post">
+          <div class="modal-body">
+            <input type="hidden" name="sec" id="applyOrderSec" value="">
+      <input type="hidden" name="order" id="applyOrderPayload" value="">
+            <p>¿Deseas aplicar el orden del archivo para la sección <strong id="applyOrderSecLabel"></strong>? Esta acción ajustará el <em>Número de lista</em> en la base de datos siguiendo el orden del archivo. Los estudiantes no presentes en el archivo se moverán al final.</p>
+          </div>
+          <div class="modal-footer">
+            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+            <button type="submit" class="btn btn-primary">Aplicar</button>
+          </div>
+        </form>
+      </div>
+    </div>
+  </div>
   <script>
         // Datos para exportación desde PHP
-        window.COMPARE_DETAILS = <?php
+  window.COMPARE_DETAILS = <?php
           $safeDetails = $details ?? [];
           echo json_encode($safeDetails, JSON_HEX_TAG|JSON_HEX_APOS|JSON_HEX_AMP|JSON_HEX_QUOT);
         ?>;
@@ -212,15 +365,15 @@
           const d = window.COMPARE_DETAILS || {};
           const rows = [];
           // Encabezados
-          rows.push(['tipo','nombre','seccion','desde','hacia']);
-          const pushRow = (tipo, nombre, seccion, desde, hacia) => {
-            rows.push([tipo||'', nombre||'', seccion||'', desde||'', hacia||'']);
+          rows.push(['tipo','nombre','seccion','desde','hacia','num_lista_archivo','num_lista_bd']);
+          const pushRow = (tipo, nombre, seccion, desde, hacia, numArchivo, numLista) => {
+            rows.push([tipo||'', nombre||'', seccion||'', desde||'', hacia||'', (numArchivo??''), (numLista??'')]);
           };
-          (d.newStudents||[]).forEach(r=> pushRow('Nuevo', r.name, r.seccion, '', ''));
-          (d.movedStudents||[]).forEach(r=> pushRow('Movido', r.name, '', r.from, r.to));
-          (d.missingStudents||[]).forEach(r=> pushRow('Faltante', r.name, r.seccion, '', ''));
-          (d.duplicatesInFile||[]).forEach(r=> pushRow('Duplicado', r.name, r.seccion, '', ''));
-          (d.unknownSections||[]).forEach(r=> pushRow('SeccionDesconocida', r.name, r.seccion, '', ''));
+          (d.newStudents||[]).forEach(r=> pushRow('Nuevo', r.name, r.seccion, '', '', r.numArchivo, r.numero));
+          (d.movedStudents||[]).forEach(r=> pushRow('Movido', r.name, '', r.from, r.to, r.numArchivo, r.list_from));
+          (d.missingStudents||[]).forEach(r=> pushRow('Faltante', r.name, r.seccion, '', '', r.numArchivo, r.numero));
+          (d.duplicatesInFile||[]).forEach(r=> pushRow('Duplicado', r.name, r.seccion, '', '', r.numArchivo, ''));
+          (d.unknownSections||[]).forEach(r=> pushRow('SeccionDesconocida', r.name, r.seccion, '', '', r.numArchivo, ''));
 
           const csv = rows.map(cols => cols.map(csvEscape).join(',')).join('\r\n');
           const blob = new Blob([csv], {type: 'text/csv;charset=utf-8;'});
@@ -234,7 +387,7 @@
           URL.revokeObjectURL(url);
         }
 
-        // Exportar CSV
+  // Exportar CSV
         document.getElementById('btnExportCompare').addEventListener('click', exportCompareCSV);
 
         // Buscar en vivo sobre todas las tablas
@@ -298,12 +451,97 @@
         const collapseAllBtn = document.getElementById('btnCollapseAll');
         function setAll(open){
           document.querySelectorAll('#accordionDetalles .accordion-collapse').forEach(el=>{
-            const c = bootstrap.Collapse.getOrCreateInstance(el, {toggle:false});
-            open ? c.show() : c.hide();
+            if (window.bootstrap && bootstrap.Collapse) {
+              const c = bootstrap.Collapse.getOrCreateInstance(el, {toggle:false});
+              open ? c.show() : c.hide();
+            } else {
+              // Fallback: manipular clases directamente
+              if (open) {
+                el.classList.add('show');
+              } else {
+                el.classList.remove('show');
+              }
+              // Sync botón
+              const id = el.getAttribute('id');
+              document.querySelectorAll(`button.accordion-button[data-bs-target="#${id}"]`).forEach(btn=>{
+                if (open) {
+                  btn.classList.remove('collapsed');
+                  btn.setAttribute('aria-expanded','true');
+                } else {
+                  btn.classList.add('collapsed');
+                  btn.setAttribute('aria-expanded','false');
+                }
+              });
+            }
           });
         }
         expandAllBtn?.addEventListener('click', ()=> setAll(true));
         collapseAllBtn?.addEventListener('click', ()=> setAll(false));
+
+        // Control de clic en encabezados: usar Bootstrap si existe, si no, alternar clases manualmente
+        document.querySelectorAll('#accordionDetalles button.accordion-button[data-bs-target]').forEach(btn=>{
+          btn.addEventListener('click', (ev)=>{
+            ev.preventDefault();
+            ev.stopPropagation();
+            const target = btn.getAttribute('data-bs-target');
+            if (!target) return;
+            const el = document.querySelector(target);
+            if (!el) return;
+            const isOpen = el.classList.contains('show');
+            if (window.bootstrap && bootstrap.Collapse) {
+              const c = bootstrap.Collapse.getOrCreateInstance(el, {toggle:false});
+              isOpen ? c.hide() : c.show();
+            } else {
+              el.classList.toggle('show');
+            }
+            // Sync botón tras un pequeño delay si usa transición
+            setTimeout(()=>{
+              const nowOpen = el.classList.contains('show');
+              if (nowOpen) {
+                btn.classList.remove('collapsed');
+                btn.setAttribute('aria-expanded','true');
+              } else {
+                btn.classList.add('collapsed');
+                btn.setAttribute('aria-expanded','false');
+              }
+            }, 50);
+          });
+        });
+
+        // Aplicar orden por sección (modal)
+        const applyButtons = document.querySelectorAll('button[data-action="apply-order"]');
+        const modalEl = document.getElementById('modalApplyOrder');
+        const inputSec = document.getElementById('applyOrderSec');
+    const labelSec = document.getElementById('applyOrderSecLabel');
+    const inputPayload = document.getElementById('applyOrderPayload');
+        applyButtons.forEach(btn => {
+          btn.addEventListener('click', ()=>{
+            const sec = btn.getAttribute('data-sec') || '';
+      const payload = btn.getAttribute('data-order') || '';
+            inputSec.value = sec;
+            labelSec.textContent = sec;
+      inputPayload.value = payload;
+            if (window.bootstrap && bootstrap.Modal) {
+              bootstrap.Modal.getOrCreateInstance(modalEl).show();
+            } else {
+              // Fallback: confirm nativo
+              if (confirm('Aplicar orden del archivo para la sección ' + sec + '?')) {
+                // crear y enviar form temporal
+                const f = document.createElement('form');
+                f.method = 'post';
+                f.action = '../controller/compareStudentsController.php?action=apply_order';
+                const i = document.createElement('input');
+                i.type = 'hidden'; i.name = 'sec'; i.value = sec;
+                f.appendChild(i);
+        const j = document.createElement('input');
+        j.type = 'hidden'; j.name = 'order'; j.value = payload;
+        f.appendChild(j);
+                document.body.appendChild(f);
+                f.submit();
+              }
+            }
+          });
+        });
       </script>
     <?php endif; ?>
   <?php endif; ?>

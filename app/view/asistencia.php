@@ -2,6 +2,102 @@
 <?php require_once "../view/header.php"; ?>
 <div class="container">
     <h2>Asistencia</h2>
+        <?php if (session_status() === PHP_SESSION_NONE) { session_start(); } ?>
+            <?php
+            if (!empty($_GET['flashType']) && isset($_GET['flashMsg'])):
+                    $type = preg_replace('/[^a-z]/', '', $_GET['flashType']);
+                    if ($type === '') { $type = 'primary'; }
+                    $msg = $_GET['flashMsg'];
+                    $title = ($type === 'success') ? 'Operación exitosa' : (($type === 'warning') ? 'Atención' : (($type === 'danger') ? 'Error' : 'Información'));
+                    $headerClass = ($type === 'success') ? 'bg-success text-white' : (($type === 'warning') ? 'bg-warning' : (($type === 'danger') ? 'bg-danger text-white' : 'bg-primary text-white'));
+            ?>
+                <div class="modal fade" id="modalFlash" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header <?= $headerClass ?>">
+                                <h5 class="modal-title"><?= htmlspecialchars($title) ?></h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                            </div>
+                            <div class="modal-body">
+                                <?= htmlspecialchars($msg) ?>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <script>
+                    document.addEventListener('DOMContentLoaded', function(){
+                        var m = document.getElementById('modalFlash');
+                        if (m) { new bootstrap.Modal(m).show(); }
+                    });
+                </script>
+            <?php
+            elseif (!empty($_SESSION['flash'])): $flash = $_SESSION['flash']; unset($_SESSION['flash']);
+                $type = $flash['type'] ?? 'primary';
+                $title = ($type === 'success') ? 'Operación exitosa' : (($type === 'warning') ? 'Atención' : (($type === 'danger') ? 'Error' : 'Información'));
+                $headerClass = ($type === 'success') ? 'bg-success text-white' : (($type === 'warning') ? 'bg-warning' : (($type === 'danger') ? 'bg-danger text-white' : 'bg-primary text-white'));
+        ?>
+            <div class="modal fade" id="modalFlash" tabindex="-1" aria-hidden="true">
+                <div class="modal-dialog">
+                    <div class="modal-content">
+                        <div class="modal-header <?= $headerClass ?>">
+                            <h5 class="modal-title"><?= htmlspecialchars($title) ?></h5>
+                            <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                        </div>
+                        <div class="modal-body">
+                            <?= htmlspecialchars($flash['message']) ?>
+                        </div>
+                        <div class="modal-footer">
+                            <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            <script>
+                document.addEventListener('DOMContentLoaded', function(){
+                    var m = document.getElementById('modalFlash');
+                    if (m) { new bootstrap.Modal(m).show(); }
+                });
+            </script>
+                <?php elseif (!empty($_SESSION['status'])):
+                        $status = $_SESSION['status'];
+                        $action = $_SESSION['action'] ?? '';
+                        unset($_SESSION['status'], $_SESSION['action']);
+                        $type = ($status === 'success') ? 'success' : 'danger';
+                        $title = ($status === 'success') ? 'Operación exitosa' : 'Error';
+                        $headerClass = ($type === 'success') ? 'bg-success text-white' : 'bg-danger text-white';
+                        $msgMap = [
+                                'update_tipo' => 'Tipo de asistencia actualizado.',
+                                'delete_sesion' => 'Sesión eliminada correctamente.',
+                                'error' => 'Ocurrió un error durante la operación.'
+                        ];
+                        $message = $msgMap[$action] ?? (($status === 'success') ? 'Operación realizada correctamente.' : 'Ocurrió un error.');
+                ?>
+                    <div class="modal fade" id="modalFlash" tabindex="-1" aria-hidden="true">
+                        <div class="modal-dialog">
+                            <div class="modal-content">
+                                <div class="modal-header <?= $headerClass ?>">
+                                    <h5 class="modal-title"><?= htmlspecialchars($title) ?></h5>
+                                    <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                                </div>
+                                <div class="modal-body">
+                                    <?= htmlspecialchars($message) ?>
+                                </div>
+                                <div class="modal-footer">
+                                    <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                    <script>
+                        document.addEventListener('DOMContentLoaded', function(){
+                            var m = document.getElementById('modalFlash');
+                            if (m) { new bootstrap.Modal(m).show(); }
+                        });
+                    </script>
+                <?php endif; ?>
     <?php
     // Definir variable de filtros completos antes de usarla
     $filtrosCompletos = isset($_GET['seccion']) && $_GET['seccion'] !== '' &&
@@ -60,11 +156,15 @@
     $columnas = [];
     if ($filtrosCompletos && !empty($asistencias)) {
         foreach ($asistencias as $a) {
-            $key = $a['Fecha'] . '|' . $a['nombreDelTema'];
-            $columnas[$key] = [
-                'fecha' => $a['Fecha'],
-                'tema' => $a['nombreDelTema']
-            ];
+            $idSesion = isset($a['idSesion']) ? (int)$a['idSesion'] : 0;
+            $key = $idSesion . '|' . $a['Fecha'] . '|' . $a['nombreDelTema'];
+            if (!isset($columnas[$key])) {
+                $columnas[$key] = [
+                    'idSesion' => $idSesion,
+                    'fecha' => $a['Fecha'],
+                    'tema' => $a['nombreDelTema']
+                ];
+            }
         }
     }
     ?>
@@ -74,9 +174,21 @@
             <th>#</th>
             <th>Nombre y Apellidos</th>
             <?php foreach ($columnas as $col): ?>
-                <th style="writing-mode: vertical-rl; text-align: center; vertical-align: bottom; white-space: nowrap; font-size:1em; font-weight:bold;">
-                    <?= htmlspecialchars($col['fecha']) ?><br>
-                    <span style="font-size:0.9em;font-style:italic;">(<?= htmlspecialchars($col['tema']) ?>)</span>
+                <th class="th-sesion position-relative" data-id-sesion="<?= htmlspecialchars($col['idSesion'] ?? '') ?>" style="writing-mode: vertical-rl; text-align: center; vertical-align: bottom; white-space: nowrap; font-size:1em; font-weight:bold;">
+                    <div class="th-content">
+                        <?= htmlspecialchars($col['fecha']) ?><br>
+                        <span style="font-size:0.9em;font-style:italic;">(<?= htmlspecialchars($col['tema']) ?>)</span>
+                    </div>
+                    <div class="th-overlay d-flex align-items-center justify-content-center">
+                        <div class="btn-group btn-group-sm" role="group">
+                            <a href="editAsistenciaController.php?idSesion=<?= urlencode($col['idSesion'] ?? '') ?>&seccion=<?= urlencode($_GET['seccion'] ?? '') ?>&corte=<?= urlencode($_GET['corte'] ?? '') ?>&materia=<?= urlencode($_GET['materia'] ?? '') ?>" class="btn btn-warning" title="Editar sesión">
+                                <i class="bi bi-pencil-square"></i>
+                            </a>
+                            <button type="button" class="btn btn-danger btn-eliminar-sesion" title="Eliminar sesión">
+                                <i class="bi bi-trash3"></i>
+                            </button>
+                        </div>
+                    </div>
                 </th>
             <?php endforeach; ?>
         </tr>
@@ -108,7 +220,7 @@
                         <?php
                         $tipo = '';
                         foreach ($asistencias as $a) {
-                            if ($a['idStudent'] == $idStudent && $a['Fecha'] == $col['fecha'] && $a['nombreDelTema'] == $col['tema']) {
+                            if ($a['idStudent'] == $idStudent && isset($col['idSesion']) && isset($a['idSesion']) && (int)$a['idSesion'] === (int)$col['idSesion']) {
                                 $tipo = isset($a['tipo_asistencia']) ? $a['tipo_asistencia'] : $a['idTipoAsistencia'];
                                 break;
                             }
@@ -142,6 +254,17 @@
     background-color: #ffcccc !important;
     color: #a94442 !important;
 }
+/* Overlay para eliminar sesión en encabezado */
+.th-sesion { position: relative; }
+.th-sesion .th-content { opacity: 1; transition: opacity .15s ease-in-out; }
+/* Oculto por defecto: sin color ni botón, no intercepta eventos */
+.th-sesion .th-overlay {
+    position: absolute; inset: 0; display: flex; align-items: center; justify-content: center;
+    background: rgba(220,53,69,.15); opacity: 0; pointer-events: none; transition: opacity .15s ease-in-out;
+}
+/* Solo al hover/focus se muestra color e icono */
+.th-sesion:hover .th-overlay, .th-sesion:focus-within .th-overlay { opacity: 1; pointer-events: auto; }
+.th-sesion:hover .th-content, .th-sesion:focus-within .th-content { opacity: .2; }
 </style>
 
 <script>
@@ -230,4 +353,44 @@ function aplicarPaginacion() {
 }
 
 window.addEventListener('DOMContentLoaded', aplicarPaginacion);
+
+// Eliminar sesión de asistencia (modal de confirmación)
+document.addEventListener('click', function(e){
+    const btn = e.target.closest('.btn-eliminar-sesion');
+    if (!btn) return;
+    const th = btn.closest('.th-sesion');
+    const idSesion = th?.dataset.idSesion;
+    if (!idSesion) return;
+    // Crear modal si no existe
+    let modal = document.getElementById('modalEliminarSesion');
+    if (!modal) {
+        const html = `
+        <div class="modal fade" id="modalEliminarSesion" tabindex="-1" aria-hidden="true">
+            <div class="modal-dialog">
+                <div class="modal-content">
+                    <div class="modal-header bg-danger text-white">
+                        <h5 class="modal-title">Eliminar sesión de asistencia</h5>
+                        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+                    </div>
+                    <div class="modal-body">
+                        ¿Seguro que deseas eliminar esta sesión de asistencia? Esta acción no se puede deshacer.
+                    </div>
+                    <div class="modal-footer">
+                        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                        <form id="formEliminarSesion" method="POST" action="asistenciaController.php" class="d-inline">
+                            <input type="hidden" name="id_sesion" id="inputIdSesion">
+                            <input type="hidden" name="eliminar_sesion" value="1">
+                            <button type="submit" class="btn btn-danger">Eliminar</button>
+                        </form>
+                    </div>
+                </div>
+            </div>
+        </div>`;
+        document.body.insertAdjacentHTML('beforeend', html);
+        modal = document.getElementById('modalEliminarSesion');
+    }
+    document.getElementById('inputIdSesion').value = idSesion;
+    const bsModal = new bootstrap.Modal(modal);
+    bsModal.show();
+});
 </script>

@@ -12,6 +12,7 @@ $asistenciaModel = new Asistencia($pdo);
 $studentModel = new Student();
 $tipoAsistenciaModel = new TipoAsistencia($pdo);
 
+
 // ID real de Informática en tu BD
 $idInformatica = 2;
 
@@ -36,7 +37,8 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tipo_asistencia'])) {
 
     // Validaciones mínimas
     if (empty($postedIdSeccion) || empty($postedIdCorte) || empty($postedIdMateria) || empty($fecha) || $nombreDelTema === '') {
-        echo "<script>alert('Faltan datos obligatorios (sección, corte, materia, fecha o tema).'); history.back();</script>";
+        $_SESSION['flash'] = ['type' => 'warning', 'message' => 'Faltan datos obligatorios (sección, corte, materia, fecha o tema).'];
+        header('Location: nuevaAsistenciaController.php?seccion=' . urlencode($postedIdSeccion) . '&corte=' . urlencode($postedIdCorte) . '&materia=' . urlencode($postedIdMateria));
         exit();
     }
 
@@ -60,45 +62,27 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tipo_asistencia'])) {
         }
     }
     if (!empty($faltantes)) {
-        $primero = htmlspecialchars($faltantes[0]);
-        echo "<script>alert('Debes seleccionar el tipo de asistencia para todos los estudiantes mostrados. Falta: {$primero} (y otros si aplica).'); history.back();</script>";
+        $primero = $faltantes[0];
+        $_SESSION['flash'] = ['type' => 'warning', 'message' => 'Debes seleccionar el tipo de asistencia para todos los estudiantes mostrados. Falta: ' . $primero . ' (y otros si aplica).'];
+        header('Location: nuevaAsistenciaController.php?seccion=' . urlencode($postedIdSeccion) . '&corte=' . urlencode($postedIdCorte) . '&materia=' . urlencode($postedIdMateria));
         exit();
     }
 
-    // Evitar duplicar sesiones: comprobar si ya existe una sesión igual
-    $stmtCheck = $pdo->prepare("SELECT id FROM asistencia_sesion WHERE idCorte = ? AND idMateria = ? AND nombreDelTema = ? AND Fecha = ? LIMIT 1");
-    $stmtCheck->execute([$postedIdCorte, $postedIdMateria, $nombreDelTema, $fecha]);
-    $existingSesionId = $stmtCheck->fetchColumn();
-
-    if ($existingSesionId) {
-        // Si ya existe y ya tiene filas asociadas, abortamos para evitar duplicados
-        $stmtCount = $pdo->prepare("SELECT COUNT(*) FROM asistencia WHERE idSesion = ?");
-        $stmtCount->execute([$existingSesionId]);
-        $count = (int)$stmtCount->fetchColumn();
-        if ($count > 0) {
-            echo "<script>alert('Ya existe una asistencia guardada para esa sesión (fecha/tema). Si quieres modificar, editala en el listado.'); window.location.href='asistenciaController.php?seccion={$postedIdSeccion}&corte={$postedIdCorte}&materia={$postedIdMateria}';</script>";
-            exit();
-        }
-        // Si existe pero no tiene filas (caso raro), reutilizamos $existingSesionId
-        $idSesion = (int)$existingSesionId;
-    }
+    // Permitir múltiples sesiones aunque coincidan fecha/tema/materia/corte.
+    // No se realiza verificación de duplicados.
 
     try {
         $pdo->beginTransaction();
 
-        // Si no existe la sesión, la creamos
-        if (empty($existingSesionId)) {
-            // Usamos el método del modelo (crearSesion) — devuelve id
-            $idSesion = $asistenciaModel->crearSesion([
-                'idCorte' => $postedIdCorte,
-                'idMateria' => $postedIdMateria,
-                'nombreDelTema' => $nombreDelTema,
-                'Fecha' => $fecha
-            ]);
-
-            if (!$idSesion) {
-                throw new Exception('Error al crear la sesión de asistencia.');
-            }
+        // Crear SIEMPRE una nueva sesión de asistencia
+        $idSesion = $asistenciaModel->crearSesion([
+            'idCorte' => $postedIdCorte,
+            'idMateria' => $postedIdMateria,
+            'nombreDelTema' => $nombreDelTema,
+            'Fecha' => $fecha
+        ]);
+        if (!$idSesion) {
+            throw new Exception('Error al crear la sesión de asistencia.');
         }
 
         // Insertar cada fila de asistencia apuntando a idSesion
@@ -121,17 +105,18 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tipo_asistencia'])) {
 
         $pdo->commit();
 
-        // Éxito: redirigir al listado con mensaje
-        $mensaje = rawurlencode("Asistencia guardada correctamente. Filas insertadas: $inserted");
-        echo "<script>alert(decodeURIComponent('{$mensaje}')); window.location.href='asistenciaController.php?seccion={$postedIdSeccion}&corte={$postedIdCorte}&materia={$postedIdMateria}';</script>";
-        exit();
+    // Éxito: redirigir al listado con mensaje flash
+    $_SESSION['flash'] = ['type' => 'success', 'message' => 'Asistencia guardada correctamente. Filas insertadas: ' . $inserted];
+    header('Location: asistenciaController.php?seccion=' . urlencode($postedIdSeccion) . '&corte=' . urlencode($postedIdCorte) . '&materia=' . urlencode($postedIdMateria));
+    exit();
 
     } catch (Exception $e) {
         $pdo->rollBack();
-        // enviar mensaje de error
-        $err = addslashes($e->getMessage());
-        echo "<script>alert('Error al guardar asistencia: {$err}'); history.back();</script>";
-        exit();
+    // enviar mensaje de error
+    $err = $e->getMessage();
+    $_SESSION['flash'] = ['type' => 'danger', 'message' => 'Error al guardar asistencia: ' . $err];
+    header('Location: nuevaAsistenciaController.php?seccion=' . urlencode($postedIdSeccion) . '&corte=' . urlencode($postedIdCorte) . '&materia=' . urlencode($postedIdMateria));
+    exit();
     }
 }
 

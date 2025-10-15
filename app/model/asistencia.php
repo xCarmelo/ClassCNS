@@ -7,6 +7,33 @@ class Asistencia {
         $this->db = $db;
     }
 
+    // Obtener una sesión por id
+    public function obtenerSesion($idSesion) {
+        $stmt = $this->db->prepare("SELECT * FROM asistencia_sesion WHERE id = ? LIMIT 1");
+        $stmt->execute([$idSesion]);
+        return $stmt->fetch();
+    }
+
+    // Obtener filas de asistencia de una sesión con datos de estudiante y tipo
+    public function obtenerFilasPorSesion($idSesion) {
+        $sql = "SELECT a.id, a.idStudent, a.idTipoAsistencia, st.name AS estudiante, st.idSeccion,
+                       ta.id AS idTipo, ta.name AS tipoNombre
+                FROM asistencia a
+                JOIN student st ON st.id = a.idStudent
+                JOIN tipoasistencia ta ON ta.id = a.idTipoAsistencia
+                WHERE a.idSesion = ?
+                ORDER BY st.NumerodeLista ASC";
+        $stmt = $this->db->prepare($sql);
+        $stmt->execute([$idSesion]);
+        return $stmt->fetchAll();
+    }
+
+    // Actualizar tipo de asistencia por fila
+    public function actualizarTipoPorFila($idAsistencia, $idTipo) {
+        $stmt = $this->db->prepare("UPDATE asistencia SET idTipoAsistencia = ? WHERE id = ?");
+        return $stmt->execute([$idTipo, $idAsistencia]);
+    }
+
     // ✅ Crear nueva sesión de asistencia
     public function crearSesion($data) {
         $sql = "INSERT INTO asistencia_sesion (idCorte, idMateria, nombreDelTema, Fecha)
@@ -19,6 +46,13 @@ class Asistencia {
             $data['Fecha']
         ]);
         return $this->db->lastInsertId();
+    }
+
+    // ✅ Actualizar datos de la sesión (tema y fecha)
+    public function actualizarSesion(int $idSesion, string $nombreDelTema, string $fecha): bool {
+        $sql = "UPDATE asistencia_sesion SET nombreDelTema = ?, Fecha = ? WHERE id = ?";
+        $stmt = $this->db->prepare($sql);
+        return $stmt->execute([$nombreDelTema, $fecha, $idSesion]);
     }
 
     // ✅ Insertar asistencias de todos los estudiantes en una sesión

@@ -10,6 +10,8 @@ require_once __DIR__ . '/../model/tipoAsistencia.php';
 $db = Database::getInstance();
 $pdo = $db->getConnection();
 
+// Asegurar sesión para uso de $_SESSION
+
 $asistenciaModel = new Asistencia($pdo);
 $seccionModel = new Seccion();
 $materiaModel = new Materia();
@@ -29,6 +31,16 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['id_asistencia'], $_PO
     $_SESSION['status'] = $exito ? 'success' : 'error';
     $_SESSION['action'] = 'update_tipo';
     // Redirigir para evitar reenvío de formulario
+    header('Location: asistenciaController.php?' . http_build_query($filtros));
+    exit();
+}
+
+// Eliminar una sesión completa de asistencia
+if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['eliminar_sesion'], $_POST['id_sesion'])) {
+    $idSesion = (int)$_POST['id_sesion'];
+    $ok = $asistenciaModel->eliminarSesion($idSesion);
+    $_SESSION['status'] = $ok ? 'success' : 'error';
+    $_SESSION['action'] = $ok ? 'delete_sesion' : 'error';
     header('Location: asistenciaController.php?' . http_build_query($filtros));
     exit();
 }

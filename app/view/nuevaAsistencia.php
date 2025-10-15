@@ -19,11 +19,54 @@
 </style>
 
 <div class="container">
+            <?php if (session_status() === PHP_SESSION_NONE) { session_start(); } ?>
+            <?php if (!empty($_SESSION['flash'])): $flash = $_SESSION['flash']; unset($_SESSION['flash']);
+                $type = $flash['type'] ?? 'primary';
+                $title = ($type === 'success') ? 'Operación exitosa' : (($type === 'warning') ? 'Atención' : (($type === 'danger') ? 'Error' : 'Información'));
+                $headerClass = ($type === 'success') ? 'bg-success text-white' : (($type === 'warning') ? 'bg-warning' : (($type === 'danger') ? 'bg-danger text-white' : 'bg-primary text-white'));
+            ?>
+                <div class="modal fade" id="modalFlash" tabindex="-1" aria-hidden="true">
+                    <div class="modal-dialog">
+                        <div class="modal-content">
+                            <div class="modal-header <?= $headerClass ?>">
+                                <h5 class="modal-title"><?= htmlspecialchars($title) ?></h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                            </div>
+                            <div class="modal-body">
+                                <?= htmlspecialchars($flash['message']) ?>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                <script>
+                    document.addEventListener('DOMContentLoaded', function(){
+                        var m = document.getElementById('modalFlash');
+                        if (m) { new bootstrap.Modal(m).show(); }
+                    });
+                </script>
+            <?php endif; ?>
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h2>Nueva Asistencia</h2>
-        <button type="button" class="btn btn-primary btn-lg" id="btnAplicarTipo">
-            <i class="bi bi-check2-square"></i> Aplicar tipo de asistencia
-        </button>
+        <div class="d-flex align-items-center gap-2">
+            <div class="input-group" style="min-width: 260px; max-width: 360px;">
+                <label class="input-group-text" for="tipoAsistenciaTodos" title="Selecciona para aplicar a todos">Tipo</label>
+                <select id="tipoAsistenciaTodos" class="form-select">
+                    <option value="">...</option>
+                    <?php foreach ($tiposAsistencia as $tipoA): ?>
+                        <option value="<?= htmlspecialchars($tipoA['id']) ?>"><?= htmlspecialchars($tipoA['name']) ?></option>
+                    <?php endforeach; ?>
+                </select>
+                <button type="button" class="btn btn-success" id="btnAplicarTodos" title="Aplicar a todos">
+                    <i class="bi bi-check2-all"></i>
+                </button>
+            </div>
+            <button type="button" class="btn btn-primary btn-lg" id="btnAplicarTipo" title="Aplicar al conjunto seleccionado (Ctrl-click)">
+                <i class="bi bi-check2-square"></i> Aplicar tipo de asistencia
+            </button>
+        </div>
     </div>
 
     <?php
@@ -53,10 +96,11 @@
             </div>
         </div>
 
-        <table class="table table-bordered">
+    <table class="table table-bordered">
             <thead>
                 <tr>
-                    <th>Estudiante</th>
+            <th style="width:90px;">N° Lista</th>
+            <th>Estudiante</th>
                     <th>Tipo de Asistencia</th>
                 </tr>
             </thead>
@@ -67,6 +111,9 @@
                     // Colorear si tiene fin = 1
                     $claseFila = (!empty($est['fin']) && intval($est['fin']) === 1) ? ' table-danger' : '';
                     echo '<tr class="fila-estudiante' . $claseFila . '">';
+            // N° Lista (si existe)
+            $numLista = isset($est['NumerodeLista']) && $est['NumerodeLista'] !== '' ? (int)$est['NumerodeLista'] : '';
+            echo '<td class="text-center">' . htmlspecialchars((string)$numLista) . '</td>';
                     echo '<td>' . htmlspecialchars($est['name']) . '</td>';
                     echo '<td>';
                     echo '<select name="tipo_asistencia[' . $est['id'] . ']" class="form-control tipo-asistencia-select">';
@@ -217,6 +264,22 @@ document.addEventListener('DOMContentLoaded', function() {
         modal.show();
     });
 
+    // Aplicar a todos desde selector superior
+    const btnAplicarTodos = document.getElementById('btnAplicarTodos');
+    const selectTodos = document.getElementById('tipoAsistenciaTodos');
+    btnAplicarTodos.addEventListener('click', function(){
+        const val = selectTodos.value;
+        if (!val) {
+            showToastAsistencia('Selecciona un tipo para aplicar a todos.', 'warning');
+            selectTodos.focus();
+            return;
+        }
+        const allSelects = document.querySelectorAll('.tipo-asistencia-select');
+        let count = 0;
+        allSelects.forEach(function(s){ s.value = val; count++; });
+        showToastAsistencia('Tipo aplicado a ' + count + ' estudiante(s).', 'success');
+    });
+
     // Aplicar tipo de asistencia masivo
     const btnAplicarModal = document.getElementById('btnAplicarModal');
     btnAplicarModal.addEventListener('click', function() {
@@ -231,6 +294,7 @@ document.addEventListener('DOMContentLoaded', function() {
         });
         var modal = bootstrap.Modal.getInstance(document.getElementById('modalTipoAsistencia'));
         modal.hide();
+    showToastAsistencia('Tipo aplicado a la selección.', 'success');
     });
 
     // Confirmar guardado desde modal
