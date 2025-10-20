@@ -51,6 +51,13 @@
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h2>Nueva Asistencia</h2>
         <div class="d-flex align-items-center gap-2">
+                <div class="input-group" style="min-width: 260px; max-width: 360px;">
+                    <span class="input-group-text"><i class="bi bi-search"></i></span>
+                    <input type="text" id="buscadorNombre" class="form-control" placeholder="Buscar estudiante...">
+                    <button class="btn btn-outline-secondary" type="button" id="btnLimpiarBusqueda" title="Limpiar búsqueda">
+                        <i class="bi bi-x-lg"></i>
+                    </button>
+                </div>
             <div class="input-group" style="min-width: 260px; max-width: 360px;">
                 <label class="input-group-text" for="tipoAsistenciaTodos" title="Selecciona para aplicar a todos">Tipo</label>
                 <select id="tipoAsistenciaTodos" class="form-select">
@@ -221,14 +228,17 @@ function confirmarGuardarNuevaAsistencia() {
                 tema.focus();
                 return false;
         }
-        var selects = document.querySelectorAll('.tipo-asistencia-select');
-        for (var i = 0; i < selects.length; i++) {
-                if (!selects[i].value) {
-                        showToastAsistencia('Debes seleccionar el tipo de asistencia para todos los estudiantes mostrados.', 'warning');
-                        selects[i].focus();
-                        return false;
+                // Validar solo filas visibles (por búsqueda)
+                var filas = Array.from(document.querySelectorAll('tr.fila-estudiante'))
+                    .filter(function(row){ return row.style.display !== 'none'; });
+                for (var i = 0; i < filas.length; i++) {
+                        var sel = filas[i].querySelector('.tipo-asistencia-select');
+                        if (sel && !sel.value) {
+                                showToastAsistencia('Debes seleccionar el tipo de asistencia para todos los estudiantes mostrados.', 'warning');
+                                sel.focus();
+                                return false;
+                        }
                 }
-        }
         // Abrir modal de confirmación en lugar de confirm()
         modalConfirmGuardar.show();
         return false; // prevenir envío hasta confirmar
@@ -302,6 +312,33 @@ document.addEventListener('DOMContentLoaded', function() {
         modalConfirmGuardar.hide();
         document.getElementById('formNuevaAsistencia').submit();
     });
+
+        // --- Buscador por nombre ---
+        const inputBuscar = document.getElementById('buscadorNombre');
+        const btnLimpiarBusqueda = document.getElementById('btnLimpiarBusqueda');
+        function filtrarPorNombre() {
+            const q = (inputBuscar.value || '').trim().toLowerCase();
+            const filas = document.querySelectorAll('tr.fila-estudiante');
+            filas.forEach(function(row){
+                const celdas = row.getElementsByTagName('td');
+                const nombre = celdas && celdas[1] ? (celdas[1].textContent || '').toLowerCase() : '';
+                if (!q) {
+                    row.style.display = '';
+                } else {
+                    row.style.display = nombre.includes(q) ? '' : 'none';
+                }
+            });
+        }
+        let buscarDebounce;
+        inputBuscar.addEventListener('input', function(){
+            clearTimeout(buscarDebounce);
+            buscarDebounce = setTimeout(filtrarPorNombre, 150);
+        });
+        btnLimpiarBusqueda.addEventListener('click', function(){
+            inputBuscar.value = '';
+            filtrarPorNombre();
+            inputBuscar.focus();
+        });
 });
 </script>
 

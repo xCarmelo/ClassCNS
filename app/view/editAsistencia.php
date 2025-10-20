@@ -32,7 +32,16 @@
   <?php endif; ?>
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h2>Editar Asistencia</h2>
-    <a class="btn btn-secondary" href="asistenciaController.php?seccion=<?= urlencode($_GET['seccion'] ?? '') ?>&corte=<?= urlencode($_GET['corte'] ?? '') ?>&materia=<?= urlencode($_GET['materia'] ?? '') ?>">Volver</a>
+    <div class="d-flex align-items-center gap-2">
+      <div class="input-group" style="min-width: 260px; max-width: 360px;">
+        <span class="input-group-text"><i class="bi bi-search"></i></span>
+        <input type="text" id="buscadorNombre" class="form-control" placeholder="Buscar estudiante...">
+        <button class="btn btn-outline-secondary" type="button" id="btnLimpiarBusqueda" title="Limpiar búsqueda">
+          <i class="bi bi-x-lg"></i>
+        </button>
+      </div>
+      <a class="btn btn-secondary" href="asistenciaController.php?seccion=<?= urlencode($_GET['seccion'] ?? '') ?>&corte=<?= urlencode($_GET['corte'] ?? '') ?>&materia=<?= urlencode($_GET['materia'] ?? '') ?>">Volver</a>
+    </div>
   </div>
 
   <?php if (!$sesion): ?>
@@ -82,4 +91,39 @@
     </form>
   <?php endif; ?>
 </div>
+<script>
+  document.addEventListener('DOMContentLoaded', function(){
+    const inputBuscar = document.getElementById('buscadorNombre');
+    const btnLimpiar = document.getElementById('btnLimpiarBusqueda');
+
+    function filtrarPorNombre(){
+      const q = (inputBuscar?.value || '').trim().toLowerCase();
+      const filas = document.querySelectorAll('table.table tbody tr');
+      filas.forEach(function(row){
+        const celdas = row.getElementsByTagName('td');
+        const nombre = celdas && celdas[1] ? (celdas[1].textContent || '').toLowerCase() : '';
+        if (!q) {
+          row.style.display = '';
+        } else {
+          row.style.display = nombre.includes(q) ? '' : 'none';
+        }
+      });
+    }
+
+    let debounce;
+    if (inputBuscar) {
+      inputBuscar.addEventListener('input', function(){
+        clearTimeout(debounce);
+        debounce = setTimeout(filtrarPorNombre, 150);
+      });
+    }
+    if (btnLimpiar) {
+      btnLimpiar.addEventListener('click', function(){
+        if (inputBuscar) { inputBuscar.value = ''; }
+        filtrarPorNombre();
+        inputBuscar?.focus();
+      });
+    }
+  });
+</script>
 <?php require_once "../view/footer.php"; ?>

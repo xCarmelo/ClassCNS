@@ -403,6 +403,10 @@ function filtrarYPaginar() {
   });
 
   document.getElementById('filtroEstado').addEventListener('change', () => {
+    // Guardar antes de recargar
+    try {
+      localStorage.setItem('students_estado', document.getElementById('filtroEstado').value || '');
+    } catch(e) {}
     const url = new URL(window.location.href);
     url.searchParams.set('status', document.getElementById('filtroEstado').value);
     // Recarga para que el backend traiga Activos/Eliminados según corresponda
@@ -414,7 +418,36 @@ function filtrarYPaginar() {
 
   // Ejecutar al cargar
   window.addEventListener('DOMContentLoaded', () => {
-    filtrarYPaginar();
+    // Restaurar filtros desde localStorage
+    const url = new URL(window.location.href);
+    const hasStatusParam = url.searchParams.has('status');
+    try {
+      const s = localStorage.getItem('students_seccion') || '';
+      const q = localStorage.getItem('students_buscador') || '';
+      const e = localStorage.getItem('students_estado') || '';
+      const seccionEl = document.getElementById('filtroSeccion');
+      const buscadorEl = document.getElementById('buscador');
+      const estadoEl = document.getElementById('filtroEstado');
+
+      let shouldFilter = false;
+      if (seccionEl && s && !seccionEl.value) { seccionEl.value = s; shouldFilter = true; }
+      if (buscadorEl && q && !buscadorEl.value) { buscadorEl.value = q; shouldFilter = true; }
+      // Si no hay status en URL y tenemos uno almacenado, aplicarlo (esto recarga)
+      if (!hasStatusParam && estadoEl && e !== '') {
+        estadoEl.value = e;
+        // Disparará nuestro listener que guarda y recarga
+        const event = new Event('change', { bubbles: true });
+        estadoEl.dispatchEvent(event);
+        return; // detener flujo; la página recargará
+      }
+      if (shouldFilter) {
+        filtrarYPaginar();
+      } else {
+        filtrarYPaginar();
+      }
+    } catch(err) {
+      filtrarYPaginar();
+    }
   });
 
 // Manejo de edición de estudiantes
@@ -475,6 +508,22 @@ document.querySelectorAll('.btn-editar').forEach(btn => {
       };
     });
   });
+
+  // Guardar en localStorage al cambiar sección y al escribir en buscador
+  (function persistFilters(){
+    const seccionEl = document.getElementById('filtroSeccion');
+    const buscadorEl = document.getElementById('buscador');
+    if (seccionEl) {
+      seccionEl.addEventListener('change', function(){
+        try { localStorage.setItem('students_seccion', this.value || ''); } catch(e) {}
+      });
+    }
+    if (buscadorEl) {
+      buscadorEl.addEventListener('input', function(){
+        try { localStorage.setItem('students_buscador', this.value || ''); } catch(e) {}
+      });
+    }
+  })();
 </script>
 
 <!-- Modal confirmar eliminar -->

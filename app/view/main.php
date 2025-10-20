@@ -1,4 +1,4 @@
-<nav class="navbar navbar-expand-lg navbar-dark bg-dark">
+<nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
   <div class="container-fluid">
     <a class="navbar-brand d-flex align-items-center" href="/app/view/home.php">
       <img src="/public/assets/São José Design Católico.jpg" alt="Logo" width="40" height="40" class="d-inline-block align-top rounded-circle me-2">
@@ -9,6 +9,9 @@
     </button>
     <div class="collapse navbar-collapse" id="menuHamburguesa">
       <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
+        <li class="nav-item">
+          <a href="/app/view/home.php" class="nav-link fs-5 fw-bold"><i class="bi bi-house-door-fill"></i> Home</a>
+        </li>
         <li class="nav-item">
             <div class="nav-item dropdown">
               <a href="/app/controller/getStudentController.php" class="nav-link fs-5 fw-bold dropdown-toggle" id="estudiantesDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
@@ -32,7 +35,7 @@
             <i class="bi bi-journal-bookmark-fill"></i> Materia
           </a>
           <ul class="dropdown-menu" aria-labelledby="materiaDropdown">
-            <li><a class="dropdown-item" href="/app/controller/getMateriaController.php"><i class="bi bi-bar-chart-line-fill"></i> Lista</a></li>
+            <li><a class="dropdown-item" href="/app/controller/getMateriaController.php"><i class="bi bi-card-list"></i> Lista</a></li>
             <li><a class="dropdown-item" href="/app/controller/getIndicadorDeLogroController.php"><i class="bi bi-bar-chart-line-fill"></i> Indicadores</a></li>
           </ul>
         </li>

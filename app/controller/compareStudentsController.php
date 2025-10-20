@@ -124,6 +124,7 @@ class CompareStudentsController {
         $dbStudents = $this->studentModel->getAllStudents(1) ?? [];
         $dbByKey = [];
         $dbByName = [];
+        $dbKeyGroups = [];
         foreach ($dbStudents as $st) {
             $nName = $canonicalizeName($st['name'] ?? '');
             $nSec = $normalize($st['seccion_name'] ?? '');
@@ -132,6 +133,24 @@ class CompareStudentsController {
             // para detectar movidos
             if (!isset($dbByName[$nName])) $dbByName[$nName] = [];
             $dbByName[$nName][$nSec] = $st;
+            if (!isset($dbKeyGroups[$key])) $dbKeyGroups[$key] = [];
+            $dbKeyGroups[$key][] = $st;
+        }
+        // Duplicados en BD: misma clave canónica y sección
+        $dbDuplicates = [];
+        foreach ($dbKeyGroups as $key => $arr) {
+            if (count($arr) > 1) {
+                // consolidar info (nombre, sección, números de lista)
+                $name = $arr[0]['name'] ?? '';
+                $sec = $arr[0]['seccion_name'] ?? '';
+                $nums = [];
+                foreach ($arr as $st) { if (isset($st['NumerodeLista'])) { $nums[] = (string)$st['NumerodeLista']; } }
+                $dbDuplicates[] = [
+                    'name' => $name,
+                    'seccion' => $sec,
+                    'numeros_bd' => implode(', ', $nums),
+                ];
+            }
         }
 
         // Filas del archivo
@@ -268,13 +287,14 @@ class CompareStudentsController {
             'moved'      => count($movedStudents),
             'duplicates' => count($duplicatesInFile),
             'unknown_sections' => count($unknownSections),
+            'db_duplicates' => count($dbDuplicates),
         ];
     // Asegurar campos para consistencia
     foreach ($duplicatesInFile as &$d) { if (!isset($d['numero'])) { $d['numero'] = null; } if (!isset($d['numArchivo'])) { $d['numArchivo'] = null; } }
     foreach ($unknownSections as &$u) { if (!isset($u['numero'])) { $u['numero'] = null; } if (!isset($u['numArchivo'])) { $u['numArchivo'] = null; } }
     unset($d, $u);
 
-    $details = compact('newStudents','missingStudents','movedStudents','duplicatesInFile','unknownSections');
+    $details = compact('newStudents','missingStudents','movedStudents','duplicatesInFile','unknownSections','dbDuplicates');
     $details['orderReport'] = [
         'bySection' => $orderBySection,
         'summary'   => $orderSummary,
@@ -319,8 +339,28 @@ class CompareStudentsController {
             }
         }
         if (empty($fileOrderBySec[$secKey])) {
-            $this->index(['summary' => ['error' => 'No hay datos recientes para aplicar el orden. Vuelve a comparar.']]);
-            return;
+            // Intentar localizar por clave normalizada
+            $norm = function (string $s): string {
+                $s = trim(mb_strtolower($s));
+                $s = strtr($s, [
+                    'á'=>'a','é'=>'e','í'=>'i','ó'=>'o','ú'=>'u',
+                    'Á'=>'a','É'=>'e','Í'=>'i','Ó'=>'o','Ú'=>'u',
+                    'ñ'=>'n','Ñ'=>'n','ü'=>'u','Ü'=>'u','ï'=>'i','Ï'=>'i','ä'=>'a','Ä'=>'a','ë'=>'e','Ë'=>'e','ö'=>'o','Ö'=>'o',
+                ]);
+                $s = preg_replace('/\s+/', ' ', $s);
+                return $s ?? '';
+            };
+            $secNorm = $norm($secKey);
+            foreach ($fileOrderBySec as $k => $list) {
+                if ($norm((string)$k) === $secNorm) {
+                    $fileOrderBySec[$secKey] = $list;
+                    break;
+                }
+            }
+            if (empty($fileOrderBySec[$secKey])) {
+                $this->index(['summary' => ['error' => 'No hay datos recientes para aplicar el orden. Vuelve a comparar.']]);
+                return;
+            }
         }
 
         // Encontrar idSeccion por nombre normalizado
@@ -475,9 +515,10 @@ class CompareStudentsController {
         foreach ($remaining as $rec) { $newOrderIds[] = $rec['id']; }
 
         // Aplicar actualización segura en dos fases para evitar colisiones únicas
-        $pdo = Student::$pdo ?? null;
-        if (!$pdo) { $pdo = Database::getInstance()->getConnection(); }
-        $pdo->beginTransaction();
+    $pdo = Student::$pdo ?? null;
+    if (!$pdo) { $pdo = Database::getInstance()->getConnection(); }
+    if (!$pdo) { throw new RuntimeException('No hay conexión a la base de datos.'); }
+    if (!$pdo->inTransaction()) { $pdo->beginTransaction(); }
         try {
             $stmtTmp = $pdo->prepare('UPDATE student SET NumerodeLista = :num WHERE id = :id AND idSeccion = :sec');
             $offset = 10000;
@@ -492,7 +533,7 @@ class CompareStudentsController {
                 $stmt->execute([':num' => $pos, ':id' => $id, ':sec' => $idSeccion]);
                 $pos++;
             }
-            $pdo->commit();
+            if ($pdo->inTransaction()) { $pdo->commit(); }
             $_SESSION['status'] = 'success';
             $_SESSION['action'] = 'apply_order';
 
@@ -554,7 +595,7 @@ class CompareStudentsController {
                 // silencioso: no bloquear por fallo de refresh
             }
         } catch (Throwable $e) {
-            $pdo->rollBack();
+            if ($pdo->inTransaction()) { $pdo->rollBack(); }
             $_SESSION['status'] = 'error';
             $_SESSION['action'] = 'apply_order';
             $_SESSION['error_msg'] = 'No se pudo aplicar el orden: ' . $e->getMessage();
@@ -609,12 +650,16 @@ class CompareStudentsController {
         $students = $this->studentModel->getAllStudents(1) ?? [];
         $dbByKey = [];
         $dbByName = [];
+        $dbKeyGroups = [];
         foreach ($students as $st) {
             $nName = $canonicalizeName($st['name'] ?? '');
             $nSec  = $normalize($st['seccion_name'] ?? '');
             $dbByKey[$nName.'||'.$nSec] = $st;
             if (!isset($dbByName[$nName])) $dbByName[$nName] = [];
             $dbByName[$nName][$nSec] = $st;
+            $k = $nName.'||'.$nSec;
+            if (!isset($dbKeyGroups[$k])) $dbKeyGroups[$k] = [];
+            $dbKeyGroups[$k][] = $st;
         }
 
         // Nuevos/Movidos
@@ -656,6 +701,18 @@ class CompareStudentsController {
                     'numero' => $st['NumerodeLista'] ?? null,
                     'numArchivo' => null
                 ];
+            }
+        }
+
+        // Duplicados en BD (misma clave canónica y sección)
+        $dbDuplicates = [];
+        foreach ($dbKeyGroups as $k => $arr) {
+            if (count($arr) > 1) {
+                $name = $arr[0]['name'] ?? '';
+                $sec = $arr[0]['seccion_name'] ?? '';
+                $nums = [];
+                foreach ($arr as $st) { if (isset($st['NumerodeLista'])) { $nums[] = (string)$st['NumerodeLista']; } }
+                $dbDuplicates[] = [ 'name'=>$name, 'seccion'=>$sec, 'numeros_bd'=>implode(', ', $nums) ];
             }
         }
 
@@ -708,8 +765,9 @@ class CompareStudentsController {
             'moved'      => count($movedStudents),
             'duplicates' => count($duplicatesInFile),
             'unknown_sections' => count($unknownSections),
+            'db_duplicates' => count($dbDuplicates),
         ];
-        $details = compact('newStudents','missingStudents','movedStudents','duplicatesInFile','unknownSections');
+        $details = compact('newStudents','missingStudents','movedStudents','duplicatesInFile','unknownSections','dbDuplicates');
         $details['orderReport'] = [ 'bySection' => $orderBySection, 'summary' => $orderSummary ];
 
         $_SESSION['last_compare']['summary'] = $summary;

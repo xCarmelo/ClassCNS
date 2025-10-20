@@ -185,6 +185,26 @@ th.criterio-celda, td[data-puntos] {
         <div class="alert alert-warning">No hay datos para los filtros seleccionados. Verifique que existan Indicadores vinculados a la Sección mediante Enlace y que haya estudiantes activos.</div>
     <?php else: ?>
 
+        <?php
+        // Paleta dinámica por indicador: colorea encabezados y celdas del grupo
+        $nInd = is_array($indicadores) ? count($indicadores) : 0;
+        if ($nInd > 0): ?>
+        <style>
+        <?php for ($i = 0; $i < $nInd; $i++):
+                $h = round(($i * 360) / max(1, $nInd));
+                // Tonos coordinados: header indicador (más oscuro), header criterio (medio), cuerpo (muy claro)
+                $hdrInd = "hsl($h, 70%, 35%)";
+                $hdrCrit = "hsl($h, 70%, 45%)";
+                $bodyBg = "hsl($h, 70%, 96%)";
+                $bodyBorder = "hsl($h, 60%, 85%)";
+        ?>
+            th.indicador-celda.col-ind<?= $i ?> { background: <?= $hdrInd ?>; color: #fff; }
+            th.criterio-celda.col-ind<?= $i ?> { background: <?= $hdrCrit ?>; color: #fff; }
+            td.col-ind<?= $i ?> { background: <?= $bodyBg ?>; border-color: <?= $bodyBorder ?>; }
+        <?php endfor; ?>
+        </style>
+        <?php endif; ?>
+
     <!-- Filtro de búsqueda por nombre y checkboxes de columnas -->
     <div class="row mb-2">
         <div class="col-md-4 mb-2">
@@ -229,11 +249,17 @@ th.criterio-celda, td[data-puntos] {
                         for ($j = 0; $j < max(3, count($lista)); $j++):
                             $c = $lista[$j] ?? null;
                     ?>
-                        <th class="criterio-celda col-ind<?= $i ?>" data-descr="<?= htmlspecialchars($descr) ?>" data-puntos="<?= (int)$puntos ?>">
-                            <?php if ($c):
+                        <?php
+                            // Preparar datos de tooltip antes de imprimir el <th>
+                            $descr = '';
+                            $puntos = 0;
+                            if ($c) {
                                 $descr = $c['name'] ?? $c['descripcion'] ?? '';
                                 $puntos = isset($c['puntos']) ? $c['puntos'] : (isset($c['puntaje']) ? $c['puntaje'] : 0);
-                            ?>
+                            }
+                        ?>
+                        <th class="criterio-celda col-ind<?= $i ?>" data-descr="<?= htmlspecialchars($descr) ?>" data-puntos="<?= (int)$puntos ?>">
+                            <?php if ($c): ?>
                                 <span class="criterio-num"> <?= ($j+1) ?>(<?= (int)$puntos ?>) </span>
                             <?php else: ?>
                                 <div class="small text-muted">-</div>

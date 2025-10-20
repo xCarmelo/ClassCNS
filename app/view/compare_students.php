@@ -146,6 +146,14 @@
             </div>
           </div>
         </div>
+        <div class="col-md-2">
+          <div class="card text-center border-dark">
+            <div class="card-body">
+              <div class="fw-bold text-dark">Duplicados BD</div>
+              <div class="display-6 text-dark"><?= (int)($summary['db_duplicates'] ?? 0) ?></div>
+            </div>
+          </div>
+        </div>
       </div>
 
       <div class="accordion" id="accordionDetalles">
@@ -191,17 +199,31 @@
                               <em>—</em>
                             <?php endif; ?>
                           </td>
-              <td>
+                          <td>
                             <?php
-                              $hasFileOrder = isset($_SESSION['last_compare']['fileOrderBySec']) && isset($_SESSION['last_compare']['fileOrderBySec'][$secKey]);
+                              // Construir payload si existe (no obligatorio)
+                              $fileOrderList = $fileOrderBySecLocal[$secKey] ?? null;
+                              if (!$fileOrderList) {
+                                $norm = function($s){
+                                  $s = trim(mb_strtolower((string)$s));
+                                  $s = strtr($s, ['á'=>'a','é'=>'e','í'=>'i','ó'=>'o','ú'=>'u','Á'=>'a','É'=>'e','Í'=>'i','Ó'=>'o','Ú'=>'u','ñ'=>'n','Ñ'=>'n','ü'=>'u','Ü'=>'u','ï'=>'i','Ï'=>'i','ä'=>'a','Ä'=>'a','ë'=>'e','Ë'=>'e','ö'=>'o','Ö'=>'o']);
+                                  $s = preg_replace('/\s+/', ' ', $s);
+                                  return $s;
+                                };
+                                $secNorm = $norm($secKey);
+                                foreach ($fileOrderBySecLocal as $k => $list) {
+                                  if ($norm($k) === $secNorm) { $fileOrderList = $list; break; }
+                                }
+                              }
+                              $payload = $fileOrderList ? base64_encode(json_encode($fileOrderList)) : '';
+                              $showBtn = (($info['status'] ?? '') === 'diff');
                             ?>
-                            <?php if (($info['status'] ?? '') === 'diff' && (int)($info['fileCount'] ?? 0) > 0 && $hasFileOrder): ?>
-                <?php $payload = base64_encode(json_encode($fileOrderBySecLocal[$secKey] ?? [])); ?>
-                <button type="button" class="btn btn-sm btn-primary" data-action="apply-order" data-sec="<?= htmlspecialchars($secKey) ?>" data-order="<?= htmlspecialchars($payload) ?>">
-                                Aplicar orden del archivo
+                            <?php if ($showBtn): ?>
+                              <button type="button" class="btn btn-sm btn-primary" data-action="apply-order" data-sec="<?= htmlspecialchars($secKey) ?>" data-order="<?= htmlspecialchars($payload) ?>">
+                                Corregir N° lista
                               </button>
                             <?php else: ?>
-                <button type="button" class="btn btn-sm btn-secondary" disabled>—</button>
+                              <button type="button" class="btn btn-sm btn-secondary" disabled>—</button>
                             <?php endif; ?>
                           </td>
                         </tr>
@@ -304,6 +326,28 @@
         </div>
 
         <div class="accordion-item">
+          <h2 class="accordion-header" id="headDupBD">
+            <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#secDupBD">Duplicados en BD (<?= (int)($summary['db_duplicates'] ?? 0) ?>)</button>
+          </h2>
+          <div id="secDupBD" class="accordion-collapse collapse">
+            <div class="accordion-body">
+              <p class="text-muted small mb-2">Estudiantes duplicados en la base de datos (misma clave: nombre canónico y sección). Revisa y depura la BD.</p>
+              <?php if (!empty($details['dbDuplicates'])): ?>
+              <div class="table-responsive">
+                <table class="table table-sm table-striped table-hover table-bordered compare-table" data-section="duplicados_bd"><thead class="table-light"><tr><th>Nombre</th><th>Sección</th><th>N° Lista (BD)</th></tr></thead><tbody>
+                  <?php foreach ($details['dbDuplicates'] as $r): ?>
+                  <tr><td><?= htmlspecialchars($r['name']) ?></td><td><?= htmlspecialchars($r['seccion']) ?></td><td><?= htmlspecialchars($r['numeros_bd'] ?? '') ?></td></tr>
+                  <?php endforeach; ?>
+                </tbody></table>
+              </div>
+              <?php else: ?>
+                <em>Sin registros.</em>
+              <?php endif; ?>
+            </div>
+          </div>
+        </div>
+
+        <div class="accordion-item">
           <h2 class="accordion-header" id="headUnknown">
             <button class="accordion-button collapsed" type="button" data-bs-toggle="collapse" data-bs-target="#secUnknown">Secciones desconocidas (<?= (int)$summary['unknown_sections'] ?>)</button>
           </h2>
@@ -374,6 +418,7 @@
           (d.missingStudents||[]).forEach(r=> pushRow('Faltante', r.name, r.seccion, '', '', r.numArchivo, r.numero));
           (d.duplicatesInFile||[]).forEach(r=> pushRow('Duplicado', r.name, r.seccion, '', '', r.numArchivo, ''));
           (d.unknownSections||[]).forEach(r=> pushRow('SeccionDesconocida', r.name, r.seccion, '', '', r.numArchivo, ''));
+          (d.dbDuplicates||[]).forEach(r=> pushRow('DuplicadoBD', r.name, r.seccion, '', '', '', r.numeros_bd));
 
           const csv = rows.map(cols => cols.map(csvEscape).join(',')).join('\r\n');
           const blob = new Blob([csv], {type: 'text/csv;charset=utf-8;'});
@@ -517,10 +562,10 @@
         applyButtons.forEach(btn => {
           btn.addEventListener('click', ()=>{
             const sec = btn.getAttribute('data-sec') || '';
-      const payload = btn.getAttribute('data-order') || '';
+            const payload = btn.getAttribute('data-order') || '';
             inputSec.value = sec;
             labelSec.textContent = sec;
-      inputPayload.value = payload;
+            inputPayload.value = payload; // si está vacío, el backend usará la sesión
             if (window.bootstrap && bootstrap.Modal) {
               bootstrap.Modal.getOrCreateInstance(modalEl).show();
             } else {

@@ -15,4 +15,4 @@ session_start();
 </head>
 <body>
     <div class="container-fluid p-0 min-vh-100 d-flex flex-column">
-        <?php require "../view/main.php";?>
+    <?php require "../view/main.php";?>
