@@ -41,6 +41,15 @@
       </select>
     </div>
     <div class="col-md-3">
+      <label for="filtroCorte" class="form-label">Filtrar por corte:</label>
+      <select id="filtroCorte" class="form-select">
+        <option value="">Todos</option>
+        <?php foreach ($cortes as $corte): ?>
+          <option value="<?= htmlspecialchars($corte['id']) ?>"><?= htmlspecialchars($corte['name']) ?></option>
+        <?php endforeach; ?>
+      </select>
+    </div>
+    <div class="col-md-3">
       <label for="filtroSeccionAsunto" class="form-label">Filtrar por sección:</label>
       <select id="filtroSeccionAsunto" class="form-select">
         <option value="">Todas</option>
@@ -72,6 +81,7 @@
             <th>Sección</th>
             <th>Status</th>
             <th>Fecha</th>
+            <th>Corte</th>
             <th>Acciones</th>
           </tr>
         </thead>
@@ -82,7 +92,8 @@
                   data-materia="<?= strtolower($asunto['materia_name']) ?>"
                   data-status="<?= $asunto['statuss'] ?>"
                   data-fecha="<?= $asunto['fecha'] ?>"
-                  data-seccion="<?= strtolower($asunto['seccion_name']) ?>">
+                  data-seccion="<?= strtolower($asunto['seccion_name']) ?>"
+                  data-corte="<?= isset($asunto['idCorte']) ? $asunto['idCorte'] : '' ?>">
                 <td><?= $index + 1 ?></td>
                 <td class="nombre-estudiante"><?= htmlspecialchars($asunto['student_name']) ?></td>
                 <td><?= htmlspecialchars($asunto['materia_name']) ?></td>
@@ -97,6 +108,7 @@
                   <?php endif; ?>
                 </td>
                 <td><?= date('d/m/Y H:i', strtotime($asunto['fecha'])) ?></td>
+                <td><?= htmlspecialchars($asunto['corte_name']) ?></td>
                 <td>
                   <button class="btn btn-sm btn-warning btn-editar" data-id="<?= $asunto['id'] ?>">
                     <i class="bi bi-pencil-square"></i>
@@ -184,15 +196,24 @@
         </div>
         <div class="mb-3">
           <label for="edit-tema" class="form-label">Tema:</label>
-          <input type="text" class="form-control" id="edit-tema" name="tema" required>
+          <textarea class="form-control" id="edit-tema" name="tema" rows="2" required></textarea>
         </div>
         <div class="mb-3">
           <label for="edit-nota" class="form-label">Nota:</label>
-          <input type="text" class="form-control" id="edit-nota" name="nota" required>
+          <textarea class="form-control" id="edit-nota" name="nota" rows="4" required></textarea>
         </div>
         <div class="mb-3">
           <label for="edit-fecha" class="form-label">Fecha:</label>
           <input type="datetime-local" class="form-control" id="edit-fecha" name="fecha" required>
+        </div>
+        <div class="mb-3">
+          <label for="edit-idCorte" class="form-label">Corte:</label>
+          <select class="form-select" id="edit-idCorte" name="idCorte" required>
+            <option value="">Seleccione un corte</option>
+            <?php foreach ($cortes as $corte): ?>
+              <option value="<?= $corte['id'] ?>"><?= htmlspecialchars($corte['name']) ?></option>
+            <?php endforeach; ?>
+          </select>
         </div>
         <div class="form-check">
           <input class="form-check-input" type="checkbox" value="1" name="statuss" id="edit-statuss">
@@ -363,6 +384,7 @@ document.getElementById('btnExportarAsuntos').addEventListener('click', function
             document.getElementById('edit-nota').value = asunto.nota;
             document.getElementById('edit-fecha').value = asunto.fecha.replace(" ", "T");
             document.getElementById('edit-statuss').checked = asunto.statuss == 1;
+            document.getElementById('edit-idCorte').value = asunto.idCorte;
             modalEditar.show();
           } else {
             showToast('No se pudo obtener la información del asunto.', 'danger');
@@ -456,13 +478,14 @@ document.getElementById('btnExportarAsuntos').addEventListener('click', function
     const fechaInicio = document.getElementById('filtroFechaInicio').value;
     const fechaFin = document.getElementById('filtroFechaFin').value;
     const seccion = document.getElementById('filtroSeccionAsunto').value.toLowerCase();
+    const corte = document.getElementById('filtroCorte').value;
 
     document.querySelectorAll('#tablaAsuntos tbody tr').forEach(tr => {
       const estudiante = tr.dataset.estudiante;
       const mat = tr.dataset.materia;
       const stat = tr.dataset.status;
       const fecha = tr.dataset.fecha;
-      const secc = tr.dataset.seccion;
+      const secc = tr.dataset.seccion; 
 
       let visible = true;
       if (nombre && !estudiante.includes(nombre)) visible = false;
@@ -471,6 +494,8 @@ document.getElementById('btnExportarAsuntos').addEventListener('click', function
       if (seccion && secc !== seccion) visible = false;
       if (fechaInicio && new Date(fecha) < new Date(fechaInicio)) visible = false;
       if (fechaFin && new Date(fecha) > new Date(fechaFin)) visible = false;
+      // Ajustar comparación para manejar valores vacíos y no numéricos
+      if (corte && (!tr.dataset.corte || isNaN(tr.dataset.corte) || parseInt(tr.dataset.corte) !== parseInt(corte))) visible = false;
 
       tr.dataset.visible = visible ? "true" : "false";
     });
@@ -498,21 +523,24 @@ const filtrosIds = [
   'filtroStatus',
   'filtroFechaInicio',
   'filtroFechaFin',
-  'filtroSeccionAsunto'
+  'filtroSeccionAsunto',
+  'filtroCorte' // Añadido filtroCorte
 ];
 
-// Guardar cambios en localStorage
+// Guardar cambios en localStorage y aplicar filtros inmediatamente
 filtrosIds.forEach(id => {
   const el = document.getElementById(id);
   el.addEventListener('change', () => {
     localStorage.setItem(id, el.value);
+    filtrarAsuntos(); // Aplicar filtro inmediatamente
   });
   el.addEventListener('input', () => {
     localStorage.setItem(id, el.value);
+    filtrarAsuntos(); // Aplicar filtro inmediatamente
   });
 });
 
-// Restaurar valores al cargar la página
+// Restaurar valores y aplicar filtros al cargar
 window.addEventListener('DOMContentLoaded', () => {
   filtrosIds.forEach(id => {
     const valor = localStorage.getItem(id);
@@ -520,7 +548,7 @@ window.addEventListener('DOMContentLoaded', () => {
       document.getElementById(id).value = valor;
     }
   });
-  filtrarAsuntos(); // aplicar los filtros restaurados
+  filtrarAsuntos(); // Aplicar los filtros restaurados
 });
 
 </script>

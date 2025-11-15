@@ -281,7 +281,6 @@ if (isset($_SESSION['status']) && isset($_SESSION['action'])):
           <label class="form-label">Estudiante:</label>
           <div class="d-flex align-items-center">
             <span id="add-selected-student" class="me-2"></span>
-            
           </div>
         </div>
         <div class="mb-3">
@@ -290,6 +289,15 @@ if (isset($_SESSION['status']) && isset($_SESSION['action'])):
             <option value="">Seleccione una materia</option>
             <?php foreach ($materias as $materia): ?>
               <option value="<?= $materia['id'] ?>"><?= htmlspecialchars($materia['name']) ?></option>
+            <?php endforeach; ?>
+          </select>
+        </div>
+        <div class="mb-3">
+          <label for="add-idCorte" class="form-label">Corte:</label>
+          <select class="form-select" id="add-idCorte" name="idCorte" required>
+            <option value="">Seleccione un corte</option>
+            <?php foreach ($cortes as $corte): ?>
+              <option value="<?= $corte['id'] ?>"><?= htmlspecialchars($corte['name']) ?></option>
             <?php endforeach; ?>
           </select>
         </div>

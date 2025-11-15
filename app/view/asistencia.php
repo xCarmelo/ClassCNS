@@ -151,23 +151,44 @@
         Nueva Asistencia
     </button>
 
+        <div class="d-flex justify-content-between align-items-center mt-3">
+        <div>
+            <label class="form-label me-2">Filas por página:</label>
+            <select id="selectRowsPerPage" class="form-select d-inline-block" style="width:120px;">
+                <option value="10">10</option>
+                <option value="20">20</option>
+                <option value="30">30</option>
+                <option value="40">40</option>
+                <option value="50">50</option>
+            </select>
+        </div>
+        <nav>
+            <ul class="pagination justify-content-center" id="paginacionAsistencia"></ul>
+        </nav>
+    </div>
+
     <?php
-    // Agrupar asistencias por fecha y tema (cada combinación es una columna)
-    $columnas = [];
-    if ($filtrosCompletos && !empty($asistencias)) {
-        foreach ($asistencias as $a) {
-            $idSesion = isset($a['idSesion']) ? (int)$a['idSesion'] : 0;
-            $key = $idSesion . '|' . $a['Fecha'] . '|' . $a['nombreDelTema'];
-            if (!isset($columnas[$key])) {
-                $columnas[$key] = [
-                    'idSesion' => $idSesion,
-                    'fecha' => $a['Fecha'],
-                    'tema' => $a['nombreDelTema']
-                ];
+        // Agrupar asistencias por fecha y tema (cada combinación es una columna)
+        $columnas = [];
+        if ($filtrosCompletos && !empty($asistencias)) {
+            foreach ($asistencias as $a) {
+                $idSesion = isset($a['idSesion']) ? (int)$a['idSesion'] : 0;
+                $key = $idSesion . '|' . $a['Fecha'] . '|' . $a['nombreDelTema'];
+                if (!isset($columnas[$key])) {
+                    $columnas[$key] = [
+                        'idSesion' => $idSesion,
+                        'fecha' => $a['Fecha'],
+                        'tema' => $a['nombreDelTema']
+                    ];
+                }
             }
+
+            // Ordenar columnas por fecha
+            usort($columnas, function ($a, $b) {
+                return strtotime($a['fecha']) - strtotime($b['fecha']);
+            });
         }
-    }
-    ?>
+?>
 <table class="table table-bordered" id="tablaAsistencia">
     <thead>
         <tr>
@@ -242,10 +263,7 @@
 
 
 
-    <nav>
-        <ul class="pagination justify-content-center" id="paginacionAsistencia"></ul>
-    </nav>
-</div>
+
 
 <?php require_once "../view/footer.php"; ?>
 
@@ -317,8 +335,21 @@ filtros.forEach(filtro => {
 });
 
 // Paginación
-const rowsPerPage = 10;
+const storageRowsKey = keyPrefix + 'rowsPerPage';
+let rowsPerPage = parseInt(localStorage.getItem(storageRowsKey) || '10', 10) || 10;
 let currentPage = 1;
+
+// Inicializar selector de filas
+const selectRowsPerPage = document.getElementById('selectRowsPerPage');
+if (selectRowsPerPage) {
+    selectRowsPerPage.value = String(rowsPerPage);
+    selectRowsPerPage.addEventListener('change', function(){
+        rowsPerPage = parseInt(this.value, 10) || 10;
+        localStorage.setItem(storageRowsKey, String(rowsPerPage));
+        currentPage = 1;
+        aplicarPaginacion();
+    });
+}
 
 function aplicarPaginacion() {
     const tabla = document.getElementById('tablaAsistencia');

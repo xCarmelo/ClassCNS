@@ -11,6 +11,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $asunto->idStudent = $_POST['idStudent'] ?? null;
     $asunto->statuss = isset($_POST['statuss']) ? (int) $_POST['statuss'] : 0;
     $asunto->idMateria = $_POST['idMateria'] ?? null;
+    $asunto->idCorte = $_POST['idCorte'] ?? null;
 
     $exito = $asunto->updateAsunto();
 

@@ -140,6 +140,59 @@ if ($action === 'save') {
     }
 }
 
+// --- Acción: limpiar nota (borrar) via AJAX (POST) ---
+if ($action === 'clear') {
+    ob_end_clean();
+    header('Content-Type: application/json; charset=utf-8');
+    $logFile = __DIR__ . '/../../log_nota.txt';
+    function log_nota_clear($msg) {
+        global $logFile;
+        file_put_contents($logFile, date('Y-m-d H:i:s') . ' [CLEAR] ' . $msg . "\n", FILE_APPEND);
+    }
+    try {
+        if ($_SERVER['REQUEST_METHOD'] !== 'POST') {
+            http_response_code(405);
+            log_nota_clear('Método no permitido: ' . $_SERVER['REQUEST_METHOD']);
+            echo json_encode(['error' => 'Método no permitido']);
+            exit;
+        }
+        $idStudent  = isset($_POST['idStudent']) ? (int)$_POST['idStudent'] : 0;
+        $idCriterio = isset($_POST['idCriterio']) ? (int)$_POST['idCriterio'] : 0;
+        if (!$idStudent || !$idCriterio) {
+            http_response_code(400);
+            log_nota_clear('Datos incompletos: idStudent=' . $idStudent . ', idCriterio=' . $idCriterio);
+            echo json_encode(['error' => 'Datos incompletos (idStudent, idCriterio)']);
+            exit;
+        }
+        try {
+            $db = Database::getInstance();
+            $pdo = $db->getConnection();
+            $stmt = $pdo->prepare('DELETE FROM nota WHERE idStudent = :sid AND idCriterio = :cid');
+            $ok = $stmt->execute([':sid' => $idStudent, ':cid' => $idCriterio]);
+            if ($ok) {
+                log_nota_clear('Borrado OK: student=' . $idStudent . ', criterio=' . $idCriterio);
+                echo json_encode(['ok' => true]);
+                exit;
+            } else {
+                http_response_code(500);
+                log_nota_clear('Borrado falló: student=' . $idStudent . ', criterio=' . $idCriterio);
+                echo json_encode(['error' => 'No se pudo borrar la nota']);
+                exit;
+            }
+        } catch (Throwable $e) {
+            http_response_code(500);
+            log_nota_clear('Excepción DB: ' . $e->getMessage());
+            echo json_encode(['error' => 'Excepción: ' . $e->getMessage()]);
+            exit;
+        }
+    } catch (Throwable $e) {
+        http_response_code(500);
+        log_nota_clear('Excepción general: ' . $e->getMessage());
+        echo json_encode(['error' => 'Excepción: ' . $e->getMessage()]);
+        exit;
+    }
+}
+
 // --- Acción por defecto: mostrar la vista ---
 $seccionModel   = new Seccion();
 $materiaModel   = new Materia();

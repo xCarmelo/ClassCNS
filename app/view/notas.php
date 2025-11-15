@@ -94,7 +94,11 @@ th.criterio-celda, td[data-puntos] {
 
     <div class="d-flex justify-content-between align-items-center mb-3">
         <h3>Calificaciones</h3>
-        <button id="btnExportarNotas" class="btn btn-success"><i class="bi bi-file-earmark-excel"></i> Exportar Notas</button>
+        <div class="d-flex gap-2">
+            <button type="button" id="btnApplySelection" class="btn btn-primary"><i class="bi bi-people-fill"></i> Aplicar a selección</button>
+            <button type="button" id="btnApplyAll" class="btn btn-secondary"><i class="bi bi-people"></i> Aplicar a todos</button>
+            <button type="button" id="btnExportarNotas" class="btn btn-success"><i class="bi bi-file-earmark-excel"></i> Exportar Notas</button>
+        </div>
     </div>
 
     <script>
@@ -224,10 +228,25 @@ th.criterio-celda, td[data-puntos] {
             <?php endif; ?>
         </div>
     </div>
+    <div class="d-flex justify-content-between align-items-center mb-2">
+        <div>
+            <label class="form-label me-2">Filas por página:</label>
+            <select id="selectRowsPerPage" class="form-select d-inline-block" style="width:120px;">
+                <option value="10">10</option>
+                <option value="20">20</option>
+                <option value="30">30</option>
+                <option value="40">40</option>
+                <option value="50">50</option>
+            </select>
+        </div>
+        <div id="pagination" class="d-flex justify-content-center"></div>
+    </div>
+
     <div class="table-responsive">
         <table id="tablaCalif" class="table table-bordered align-middle text-center">
             <thead class="table-dark">
                 <tr>
+                    <th rowspan="2"><input type="checkbox" id="selectAllStudents" title="Seleccionar todo"></th>
                     <th rowspan="2">Nombre del Estudiante</th>
                     <?php foreach ($indicadores as $i => $ind):
                         $numC = max(3, count($criterios[$ind['id']] ?? []));
@@ -258,7 +277,7 @@ th.criterio-celda, td[data-puntos] {
                                 $puntos = isset($c['puntos']) ? $c['puntos'] : (isset($c['puntaje']) ? $c['puntaje'] : 0);
                             }
                         ?>
-                        <th class="criterio-celda col-ind<?= $i ?>" data-descr="<?= htmlspecialchars($descr) ?>" data-puntos="<?= (int)$puntos ?>">
+                        <th class="criterio-celda col-ind<?= $i ?>" data-descr="<?= htmlspecialchars($descr) ?>" data-puntos="<?= (int)$puntos ?>" <?= $c ? 'data-crit-id="'.(int)$c['id'].'"' : '' ?> >
                             <?php if ($c): ?>
                                 <span class="criterio-num"> <?= ($j+1) ?>(<?= (int)$puntos ?>) </span>
                             <?php else: ?>
@@ -270,8 +289,17 @@ th.criterio-celda, td[data-puntos] {
             </thead>
 
             <tbody>
-                <?php foreach ($estudiantes as $stu): ?>
-                    <tr data-student="<?= $stu['id'] ?>">
+                <?php
+                // Si la materia seleccionada es Informática, aplicamos la división de lista:
+                $selectedMateria = isset($_GET['materia']) ? (int)$_GET['materia'] : 0;
+                // Asumimos que Informática tiene id = 2 (ajustar si es otro id en la BD)
+                $isInformatica = ($selectedMateria === 2);
+
+                foreach ($estudiantes as $stu):
+                    $rowClass = ($isInformatica && isset($stu['fin']) && (int)$stu['fin'] === 1) ? 'table-warning' : '';
+                ?>
+                    <tr data-student="<?= $stu['id'] ?>" class="<?= $rowClass ?>">
+                        <td class="text-center"><input type="checkbox" class="select-student" data-student-id="<?= $stu['id'] ?>"></td>
                         <td class="text-start"><?= htmlspecialchars($stu['name']) ?></td>
 
                         <?php
@@ -285,7 +313,7 @@ th.criterio-celda, td[data-puntos] {
                                     $notaExisting = $notas[$stu['id']][$idC]['nota'] ?? null;
                                     $qualExisting = $notas[$stu['id']][$idC]['cualitativa'] ?? '';
                                 ?>
-                                    <td data-puntos="<?= $puntosC ?>" class="col-ind<?= $i ?>">
+                                    <td data-puntos="<?= $puntosC ?>" data-criterio-id="<?= $idC ?>" class="col-ind<?= $i ?>">
                                         <div class="d-flex flex-column">
                                             <select class="form-select select-qual" 
                                                     data-student="<?= $stu['id'] ?>"
@@ -309,10 +337,68 @@ th.criterio-celda, td[data-puntos] {
                         <td class="total-num">0</td>
                         <td class="total-qual">--</td>
                     </tr>
-                <?php endforeach; ?>
+                    <?php
+                        // Si estamos en Informática y este estudiante marca fin=1, detenemos la generación de la lista
+                        if ($isInformatica && isset($stu['fin']) && (int)$stu['fin'] === 1) {
+                            // romper el foreach para no mostrar más estudiantes
+                            break;
+                        }
+                    endforeach;
+                    ?>
             </tbody>
         </table>
     </div>
+
+                <!-- Modal para aplicar indicadores/criterios masivamente -->
+                <div class="modal fade" id="modalApplyNotas" tabindex="-1" aria-labelledby="modalApplyNotasLabel" aria-hidden="true">
+                    <div class="modal-dialog modal-lg">
+                        <div class="modal-content">
+                            <div class="modal-header bg-primary text-white">
+                                <h5 class="modal-title" id="modalApplyNotasLabel">Aplicar indicadores y criterios</h5>
+                                <button type="button" class="btn-close" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+                            </div>
+                            <div class="modal-body">
+                                <p>Selecciona los criterios a aplicar y la escala cualitativa para cada criterio. Luego confirma para guardar.</p>
+                                <div class="mb-3">
+                                    <label class="form-label">Indicadores y criterios</label>
+                                    <button type="button" id="selectAllCriteria" class="btn btn-outline-primary btn-sm mb-2">Seleccionar todos</button>
+                                    <div style="max-height:320px; overflow:auto; border:1px solid #ddd; padding:8px; border-radius:6px;">
+                                        <?php foreach ($indicadores as $i => $ind): ?>
+                                            <div class="mb-2">
+                                                <strong><?= htmlspecialchars($ind['name']) ?></strong>
+                                                <div class="d-flex flex-wrap gap-2 mt-1">
+                                                    <?php foreach (($criterios[$ind['id']] ?? []) as $c): ?>
+                                                        <div class="form-check">
+                                                            <input class="form-check-input modal-crit" type="checkbox" value="<?= (int)$c['id'] ?>" id="crit<?= (int)$c['id'] ?>">
+                                                            <label class="form-check-label" for="crit<?= (int)$c['id'] ?>"><?= htmlspecialchars($c['name'] ?? $c['descripcion'] ?? '') ?> (<?= (int)($c['puntos'] ?? ($c['puntaje'] ?? 0)) ?>)</label>
+                                                        </div>
+                                                    <?php endforeach; ?>
+                                                </div>
+                                            </div>
+                                        <?php endforeach; ?>
+                                    </div>
+                                </div>
+
+                                <div class="mb-3">
+                                                    <label class="form-label">Escala cualitativa a aplicar</label>
+                                                    <select id="modalCualitativa" class="form-select">
+                                                        <option value="">--</option>
+                                        <option value="AA">AA</option>
+                                        <option value="AS">AS</option>
+                                        <option value="AF">AF</option>
+                                        <option value="AI">AI</option>
+                                    </select>
+                                </div>
+
+                                <div class="form-text text-muted">Se realizará una petición por estudiante/criterio. El sistema intentará guardar todo y luego mostrará un resumen.</div>
+                            </div>
+                            <div class="modal-footer">
+                                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                                <button type="button" id="modalApplyBtn" class="btn btn-primary">Aplicar y Guardar</button>
+                            </div>
+                        </div>
+                    </div>
+                </div>
 
     <!-- Contenedor de paginación -->
     <div id="pagination" class="d-flex justify-content-center mt-3"></div>
@@ -470,6 +556,9 @@ th.criterio-celda, td[data-puntos] {
         });
     }
 
+    // Exponer para uso fuera de este bloque (modales, etc.)
+    window.recalcNotasTotales = calcularTotales;
+
     // --- guardado via AJAX ---
     async function onSelectChange(e) {
         const sel = e.target;
@@ -481,8 +570,27 @@ th.criterio-celda, td[data-puntos] {
         const puntos = parseInt(cell.dataset.puntos, 10) || 0;
 
         if (!cual) {
-            if (inputNota) inputNota.value = '';
-            calcularTotales();
+            // Limpiar en backend
+            try {
+                const body = new URLSearchParams();
+                body.append('idStudent', idStudent);
+                body.append('idCriterio', idCriterio);
+                const resp = await fetch('/app/controller/NotasController.php?action=clear', {
+                    method: 'POST',
+                    headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                    body: body.toString()
+                });
+                const json = await resp.json();
+                if (resp.ok && json.ok) {
+                    if (inputNota) inputNota.value = '';
+                    window.recalcNotasTotales && window.recalcNotasTotales();
+                    showToastNotas('Nota eliminada.', 'success');
+                } else {
+                    showToastNotas('No se pudo eliminar la nota.', 'danger');
+                }
+            } catch(err) {
+                showToastNotas('Error de red al eliminar nota: ' + err.message, 'danger');
+            }
             return;
         }
 
@@ -507,7 +615,7 @@ th.criterio-celda, td[data-puntos] {
             }
             if (resp.ok && json.ok) {
                 if (inputNota) inputNota.value = json.nota;
-                calcularTotales();
+                window.recalcNotasTotales && window.recalcNotasTotales();
                 showToastNotas('Nota guardada.', 'success');
             } else {
                 showToastNotas('Error guardando nota: ' + (json.error || 'error desconocido'), 'danger');
@@ -521,11 +629,21 @@ th.criterio-celda, td[data-puntos] {
     calcularTotales();
 
     // --- paginación y filtro por nombre ---
-    const rowsPerPage = 10;
     const table = document.getElementById('tablaCalif');
     const tbody = table ? table.querySelector('tbody') : null;
     const pagination = document.getElementById('pagination');
     const filtroNombre = document.getElementById('filtroNombre');
+    const storageKeyRows = keyPrefix + 'rowsPerPage';
+    let rowsPerPage = parseInt(localStorage.getItem(storageKeyRows) || '10', 10) || 10;
+    const selectRows = document.getElementById('selectRowsPerPage');
+    if (selectRows) {
+        selectRows.value = String(rowsPerPage);
+        selectRows.addEventListener('change', function(){
+            rowsPerPage = parseInt(this.value, 10) || 10;
+            try { localStorage.setItem(storageKeyRows, String(rowsPerPage)); } catch(e) {}
+            if (tbody) renderPage(1);
+        });
+    }
 
     if (tbody && pagination) {
         let rows = Array.from(tbody.querySelectorAll('tr'));
@@ -644,6 +762,151 @@ document.getElementById('btnExportarNotas').addEventListener('click', function()
     const wb = XLSX.utils.book_new();
     XLSX.utils.book_append_sheet(wb, ws, 'Notas');
     XLSX.writeFile(wb, 'notas_filtradas.xlsx');
+});
+</script>
+
+<script>
+// --- Selección de estudiantes ---
+const selectAll = document.getElementById('selectAllStudents');
+if (selectAll) {
+    selectAll.addEventListener('change', function(){
+        document.querySelectorAll('.select-student').forEach(cb => cb.checked = this.checked);
+    });
+}
+
+// Manejo de botones aplicar
+const btnApplySelection = document.getElementById('btnApplySelection');
+const btnApplyAll = document.getElementById('btnApplyAll');
+let modalApply;
+document.addEventListener('DOMContentLoaded', function(){
+    const modalEl = document.getElementById('modalApplyNotas');
+    if (modalEl) { modalApply = new bootstrap.Modal(modalEl); }
+});
+
+btnApplySelection && btnApplySelection.addEventListener('click', function(e){
+    e.preventDefault();
+    const selected = Array.from(document.querySelectorAll('.select-student:checked')).map(i => i.dataset.studentId);
+    if (selected.length === 0) { showToastNotas('Selecciona al menos un estudiante.', 'warning'); return; }
+    // Guardamos la selección en el modal para usarla al confirmar
+    document.getElementById('modalApplyNotas').dataset.targets = JSON.stringify(selected);
+    if (modalApply) modalApply.show();
+});
+
+btnApplyAll && btnApplyAll.addEventListener('click', function(e){
+    e.preventDefault();
+    const all = Array.from(document.querySelectorAll('#tablaCalif tbody tr')).map(tr => tr.dataset.student);
+    if (all.length === 0) { showToastNotas('No hay estudiantes para aplicar.', 'warning'); return; }
+    document.getElementById('modalApplyNotas').dataset.targets = JSON.stringify(all);
+    if (modalApply) modalApply.show();
+});
+
+// Lógica para aplicar masivamente
+document.getElementById('modalApplyBtn').addEventListener('click', async function(){
+    const modalEl = document.getElementById('modalApplyNotas');
+    const checkedCrit = Array.from(modalEl.querySelectorAll('.modal-crit:checked')).map(i => parseInt(i.value,10));
+    const cual = document.getElementById('modalCualitativa').value;
+    if (checkedCrit.length === 0) { showToastNotas('Selecciona al menos un criterio.', 'warning'); return; }
+
+    let targets = [];
+    try { targets = JSON.parse(modalEl.dataset.targets || '[]'); } catch(e){ targets = []; }
+    if (targets.length === 0) { showToastNotas('No hay estudiantes seleccionados.', 'warning'); return; }
+
+        // Recoger puntos por criterio (necesario para calcular nota numérica)
+        const critPoints = {};
+        checkedCrit.forEach(cid => {
+            // Buscar cualquier celda de ese criterio y leer sus puntos
+            const td = document.querySelector('td[data-criterio-id="' + cid + '"]');
+            const th = document.querySelector('th[data-crit-id="' + cid + '"]');
+            let p = 0;
+            if (td) p = parseInt(td.dataset.puntos,10) || 0;
+            if (!p && th) p = parseInt(th.getAttribute('data-puntos') || '0', 10) || 0;
+            critPoints[cid] = p;
+        });
+
+    // Map de escalas
+    const MAP = { 'AA':1, 'AS':0.85, 'AF':0.70, 'AI':0.60 };
+
+    // Confirmar y proceder: enviamos peticiones por cada student x criterio
+    const totalOps = targets.length * checkedCrit.length;
+    let successOps = 0;
+    let failedOps = 0;
+
+    showToastNotas('Guardando ' + totalOps + ' calificación(es)...', 'primary');
+    document.getElementById('modalApplyBtn').disabled = true;
+
+        for (const sid of targets) {
+            for (const cid of checkedCrit) {
+                // Si cual está vacío -> limpiar (dejar en "--")
+                if (!cual) {
+                    const body = new URLSearchParams();
+                    body.append('idStudent', sid);
+                    body.append('idCriterio', cid);
+                    try {
+                        const resp = await fetch('/app/controller/NotasController.php?action=clear', {
+                            method: 'POST',
+                            headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                            body: body.toString()
+                        });
+                        const json = await resp.json();
+                        if (resp.ok && json.ok) {
+                            successOps++;
+                            const sel = document.querySelector('select.select-qual[data-student="' + sid + '"][data-criterio="' + cid + '"]');
+                            if (sel) { sel.value = ''; const inp = sel.closest('td').querySelector('.nota-read'); if (inp) inp.value = ''; }
+                        } else {
+                            failedOps++;
+                        }
+                    } catch(err) {
+                        failedOps++;
+                    }
+                    continue;
+                }
+
+                // Guardado normal
+                const puntos = critPoints[cid] || 0;
+                const escala = MAP[cual] || 0;
+                const nota = Math.round(puntos * escala);
+                const body = new URLSearchParams();
+                body.append('idStudent', sid);
+                body.append('idCriterio', cid);
+                body.append('cualitativa', cual);
+                body.append('nota', nota);
+
+                try {
+                    const resp = await fetch('/app/controller/NotasController.php?action=save', {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/x-www-form-urlencoded' },
+                        body: body.toString()
+                    });
+                    const json = await resp.json();
+                    if (resp.ok && json.ok) {
+                        successOps++;
+                        const celda = document.querySelector('select.select-qual[data-student="' + sid + '"][data-criterio="' + cid + '"]');
+                        if (celda) { celda.value = cual; const inp = celda.closest('td').querySelector('.nota-read'); if (inp) inp.value = json.nota; }
+                    } else {
+                        failedOps++;
+                    }
+                } catch (err) {
+                    failedOps++;
+                }
+            }
+        }
+
+        document.getElementById('modalApplyBtn').disabled = false;
+        modalApply.hide();
+        window.recalcNotasTotales && window.recalcNotasTotales();
+    showToastNotas('Guardado finalizado. OK: ' + successOps + ', Fallidos: ' + failedOps, failedOps ? 'warning' : 'success');
+});
+
+document.addEventListener('DOMContentLoaded', function() {
+    // Funcionalidad para el botón "Seleccionar todos"
+    const selectAllButton = document.getElementById('selectAllCriteria');
+    if (selectAllButton) {
+        selectAllButton.addEventListener('click', function() {
+            document.querySelectorAll('.modal-crit').forEach(checkbox => {
+                checkbox.checked = true;
+            });
+        });
+    }
 });
 </script>
 

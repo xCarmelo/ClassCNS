@@ -10,6 +10,7 @@ class Asunto {
     public int $idStudent; 
     public int $statuss; 
     public int $idMateria; 
+    public int $idCorte = 1; 
 
     public static $pdo;
     public static $table;
@@ -29,6 +30,7 @@ public function getAllAsunto() {
         $sql = 'SELECT 
                     a.id,
                     a.nota,
+                    c.name as corte_name,
                     a.tema,
                     a.fecha,
                     a.statuss,
@@ -41,7 +43,8 @@ public function getAllAsunto() {
                 JOIN materia m ON a.idMateria = m.id
                 JOIN student st ON a.idStudent = st.id
                 JOIN seccion s ON st.idSeccion = s.id
-                WHERE COALESCE(st.status,1) = 1';
+                JOIN corte c ON a.idCorte = c.id
+                WHERE COALESCE(st.status, 1) = 1';
 
         $smt = self::$pdo->prepare($sql);
 
@@ -52,15 +55,17 @@ public function getAllAsunto() {
     return [];
 }
 
+
     public function addAsunto() {
         if ($this->status === 1) {
-            $smt = self::$pdo->prepare('INSERT INTO ' . self::$table . ' (fecha, nota, tema, idStudent, statuss, idMateria) VALUES (:fecha, :nota, :tema, :idStudent, :statuss, :idMateria)');
+            $smt = self::$pdo->prepare('INSERT INTO ' . self::$table . ' (fecha, nota, tema, idStudent, statuss, idMateria, idCorte) VALUES (:fecha, :nota, :tema, :idStudent, :statuss, :idMateria, :idCorte)');
             $smt->bindParam(':fecha', $this->fecha, PDO::PARAM_STR);
             $smt->bindParam(':nota', $this->nota, PDO::PARAM_STR);
             $smt->bindParam(':tema', $this->tema, PDO::PARAM_STR);
             $smt->bindParam(':idStudent', $this->idStudent, PDO::PARAM_INT);
             $smt->bindParam(':statuss', $this->statuss, PDO::PARAM_INT);
             $smt->bindParam(':idMateria', $this->idMateria, PDO::PARAM_INT);
+            $smt->bindParam(':idCorte', $this->idCorte, PDO::PARAM_INT);
 
             if ($smt->execute()) {
                 return true;
@@ -85,9 +90,10 @@ public function getAllAsunto() {
 
     public function updateAsunto() {
         if ($this->status === 1) {
-            $smt = self::$pdo->prepare('UPDATE ' . self::$table . ' SET fecha = :fecha, nota = :nota, tema = :tema, idStudent = :idStudent, statuss = :statuss, idMateria = :idMateria WHERE id = :id');
+            $smt = self::$pdo->prepare('UPDATE ' . self::$table . ' SET fecha = :fecha, idCorte = :idCorte, nota = :nota, tema = :tema, idStudent = :idStudent, statuss = :statuss, idMateria = :idMateria WHERE id = :id');
             $smt->bindParam(':id', $this->id, PDO::PARAM_INT);
             $smt->bindParam(':fecha', $this->fecha);
+            $smt->bindParam(':idCorte', $this->idCorte, PDO::PARAM_INT);
             $smt->bindParam(':nota', $this->nota, PDO::PARAM_STR);
             $smt->bindParam(':tema', $this->tema, PDO::PARAM_STR);
             $smt->bindParam(':idStudent', $this->idStudent, PDO::PARAM_INT);
@@ -101,12 +107,13 @@ public function getAllAsunto() {
         return false;
     }
 
-        public function deleteAsunto(){
-        if($this->status === 1){
-            $smt = self::$pdo->prepare('DELETE FROM ' . self::$table . ' WHERE id = :id');
+        public function deleteAsunto() {
+        if ($this->status === 1) {
+            // Actualizar el campo 'statuss' para realizar una eliminación lógica
+            $smt = self::$pdo->prepare('UPDATE ' . self::$table . ' SET statuss = 0 WHERE id = :id');
             $smt->bindParam(':id', $this->id, PDO::PARAM_INT);
 
-            if($smt->execute()){
+            if ($smt->execute()) {
                 return true;
             }
         }
