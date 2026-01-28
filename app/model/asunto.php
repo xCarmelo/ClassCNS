@@ -27,7 +27,8 @@ class Asunto {
 
 public function getAllAsunto() {
     if ($this->status === 1) {
-        $sql = 'SELECT 
+        $sql = 'SELECT
+                    st.NumerodeLista, 
                     a.id,
                     a.nota,
                     c.name as corte_name,

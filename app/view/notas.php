@@ -247,6 +247,7 @@ th.criterio-celda, td[data-puntos] {
             <thead class="table-dark">
                 <tr>
                     <th rowspan="2"><input type="checkbox" id="selectAllStudents" title="Seleccionar todo"></th>
+                    <th rowspan="2">N°</th>
                     <th rowspan="2">Nombre del Estudiante</th>
                     <?php foreach ($indicadores as $i => $ind):
                         $numC = max(3, count($criterios[$ind['id']] ?? []));
@@ -300,6 +301,7 @@ th.criterio-celda, td[data-puntos] {
                 ?>
                     <tr data-student="<?= $stu['id'] ?>" class="<?= $rowClass ?>">
                         <td class="text-center"><input type="checkbox" class="select-student" data-student-id="<?= $stu['id'] ?>"></td>
+                        <td class="text-center"><?= isset($stu['NumerodeLista']) ? (int)$stu['NumerodeLista'] : '' ?></td>
                         <td class="text-start"><?= htmlspecialchars($stu['name']) ?></td>
 
                         <?php
@@ -547,10 +549,10 @@ th.criterio-celda, td[data-puntos] {
             let qual = '--';
             if (maxPossible > 0) {
                 const ratio = (total / maxPossible) * 100; // %
-                if (ratio >= 85) qual = 'AA';
-                else if (ratio >= 70) qual = 'AS';
-                else if (ratio >= 60) qual = 'AF';
-                else if (ratio > 0) qual = 'AI';
+                if (ratio >= 90 && ratio <= 100) qual = 'AA';
+                else if (ratio >= 76 && ratio <= 89) qual = 'AS';
+                else if (ratio >= 60 && ratio <= 75) qual = 'AF';
+                else if (ratio >= 1 && ratio <= 59) qual = 'AI';
             }
             if (tdQual) tdQual.innerText = qual;
         });
@@ -907,6 +909,59 @@ document.addEventListener('DOMContentLoaded', function() {
             });
         });
     }
+    // Funcionalidad para asignar dinámicamente la nota cualitativa
+    const modalCualitativa = document.getElementById('modalCualitativa');
+    const tableRows = document.querySelectorAll('#tablaCalif tbody tr');
+
+    // Actualizar la nota cualitativa en la tabla
+    function actualizarNotaCualitativa() {
+        tableRows.forEach(row => {
+            const totalNumerico = parseInt(row.querySelector('.total-numerico').innerText, 10);
+            const cualitativaCell = row.querySelector('.cualitativa-cell');
+            let cualitativa = "";
+
+            if (totalNumerico >= 1 && totalNumerico <= 59) {
+                cualitativa = "AI";
+            } else if (totalNumerico >= 60 && totalNumerico <= 75) {
+                cualitativa = "AF";
+            } else if (totalNumerico >= 76 && totalNumerico <= 89) {
+                cualitativa = "AS";
+            } else if (totalNumerico >= 90 && totalNumerico <= 100) {
+                cualitativa = "AA";
+            }
+
+            // Actualizar la celda cualitativa
+            if (cualitativaCell) {
+                cualitativaCell.innerText = cualitativa;
+            }
+        });
+    }
+
+    // Escuchar cambios en los checkboxes y actualizar la tabla
+    document.querySelectorAll('.modal-crit').forEach(checkbox => {
+        checkbox.addEventListener('change', function() {
+            const puntos = parseInt(this.value, 10);
+            let cualitativa = "";
+
+            if (puntos >= 1 && puntos <= 59) {
+                cualitativa = "AI";
+            } else if (puntos >= 60 && puntos <= 75) {
+                cualitativa = "AF";
+            } else if (puntos >= 76 && puntos <= 89) {
+                cualitativa = "AS";
+            } else if (puntos >= 90 && puntos <= 100) {
+                cualitativa = "AA";
+            }
+
+            modalCualitativa.value = cualitativa;
+
+            // Actualizar la tabla después de cambiar el criterio
+            actualizarNotaCualitativa();
+        });
+    });
+
+    // Actualizar la tabla al cargar la página
+    actualizarNotaCualitativa();
 });
 </script>
 

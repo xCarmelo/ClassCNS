@@ -6,7 +6,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['id'])) {
     $asunto = new Asunto();
     $asunto->id = $_GET['id'];
 
-    $exito = $asunto->deleteAsunto(); // Este método debería existir en tu modelo
+    $exito = $asunto->deleteAsunto(); 
 
     $_SESSION['status'] = $exito ? 'success' : 'error';
     $_SESSION['action'] = 'delete';

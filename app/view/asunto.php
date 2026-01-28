@@ -94,7 +94,7 @@
                   data-fecha="<?= $asunto['fecha'] ?>"
                   data-seccion="<?= strtolower($asunto['seccion_name']) ?>"
                   data-corte="<?= isset($asunto['idCorte']) ? $asunto['idCorte'] : '' ?>">
-                <td><?= $index + 1 ?></td>
+                <td><?= isset($asunto['NumerodeLista']) ? (int)$asunto['NumerodeLista'] : '' ?></td>
                 <td class="nombre-estudiante"><?= htmlspecialchars($asunto['student_name']) ?></td>
                 <td><?= htmlspecialchars($asunto['materia_name']) ?></td>
                 <td><?= htmlspecialchars($asunto['tema']) ?></td>

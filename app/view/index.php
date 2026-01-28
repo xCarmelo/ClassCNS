@@ -11,14 +11,12 @@ nav.navbar { margin-bottom: 0rem !important; }
     border-radius: 0 0 40px 40px;
     box-shadow: 0 8px 32px rgba(44,62,80,0.15);
 }
-
 .home-hero h1 {
     font-size: 3rem;
     font-weight: 700;
     margin-bottom: 20px;
     letter-spacing: 2px;
 }
-
 .home-hero p {
     font-size: 1.3rem;
     margin-bottom: 30px;

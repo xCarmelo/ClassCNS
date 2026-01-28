@@ -167,7 +167,7 @@
           </div>
 
           <div class="form-text mt-2">
-            El archivo debe contener columnas con los encabezados <strong>nombre</strong> y <strong>seccion</strong>.
+            El archivo debe contener columnas con los encabezados <strong>nombre</strong>, <strong>seccion</strong>, <strong>NumerodeLista</strong>, <strong>status</strong>, <strong>idCorte</strong> y <strong>fin</strong>.
           </div>
         </form>
       </div>
@@ -182,39 +182,71 @@
 </div>
 
 
-          <!-- modal para exito o error -->
-<?php
+         <?php
 if (isset($_SESSION['status']) && isset($_SESSION['action'])):
-    $modalStatus = $_SESSION['status'];
+
+    $status = $_SESSION['status']; // success | warning | error
     $action = $_SESSION['action'];
-  $errorMsg = $_SESSION['error_msg'] ?? null;
 
-    unset($_SESSION['status'], $_SESSION['action']);
-  unset($_SESSION['error_msg']);
+    $message       = $_SESSION['message'] ?? null;
+    $error         = $_SESSION['error'] ?? null;
+    $noInsertados  = $_SESSION['noInsertados'] ?? [];
+    $insertados    = $_SESSION['insertados'] ?? 0;
 
-    $mensajes = [
-        'add' => ['¡Estudiante agregado!', 'El estudiante ha sido registrado correctamente.'],
-        'addAsunto' => ['¡Asunto agregado!', 'El Asunto ha sido registrado correctamente.'],
-        'delete' => ['¡Estudiante eliminado!', 'El estudiante ha sido eliminado correctamente.'],
-        'edit' => ['¡Estudiante actualizado!', 'Los datos del estudiante se han actualizado.'],
-        'import' => ['¡Importación exitosa!', 'Los estudiantes han sido importados correctamente.'],
-  'error' => ['Error', $errorMsg ?? 'Ocurrió un problema. Inténtalo de nuevo.']
+    // Limpiar sesión
+    unset(
+        $_SESSION['status'],
+        $_SESSION['action'],
+        $_SESSION['message'],
+        $_SESSION['error'],
+        $_SESSION['noInsertados'],
+        $_SESSION['insertados']
+    );
+
+    // Configuración visual
+    $config = [
+        'success' => ['bg' => 'success', 'title' => '✅ Operación exitosa'],
+        'warning' => ['bg' => 'warning', 'title' => '⚠ Atención'],
+        'error'   => ['bg' => 'danger',  'title' => '❌ Error']
     ];
 
-    $titulo = $modalStatus === 'success' ? $mensajes[$action][0] : $mensajes['error'][0];
-    $mensaje = $modalStatus === 'success' ? $mensajes[$action][1] : $mensajes['error'][1];
+    $bg    = $config[$status]['bg']; 
+    $title = $config[$status]['title'];
 ?>
-
-<div class="modal fade" id="modalResultado" tabindex="-1" aria-labelledby="modalResultadoLabel" aria-hidden="true">
-  <div class="modal-dialog modal-dialog-centered">
-    <div class="modal-content bg-<?= $modalStatus === 'success' ? 'success' : 'danger' ?> text-white">
+<div class="modal fade" id="modalResultado" tabindex="-1" aria-hidden="true">
+  <div class="modal-dialog modal-dialog-centered modal-lg">
+    <div class="modal-content bg-<?= $bg ?> text-dark <?= $status === 'error' ? 'text-white' : '' ?>">
       <div class="modal-header">
-        <h5 class="modal-title" id="modalResultadoLabel"><?= $titulo ?></h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+        <h5 class="modal-title"><?= $title ?></h5>
+        <button type="button" class="btn-close <?= $status === 'error' ? 'btn-close-white' : '' ?>" data-bs-dismiss="modal"></button>
       </div>
+
       <div class="modal-body">
-        <?= $mensaje ?>
+
+        <?php if ($message): ?>
+          <p><strong><?= htmlspecialchars($message) ?></strong></p>
+        <?php endif; ?>
+
+        <?php if ($status === 'error' && $error): ?>
+          <div class="alert alert-light text-dark">
+            <?= htmlspecialchars($error) ?>
+          </div>
+        <?php endif; ?>
+
+        <?php if (!empty($noInsertados)): ?>
+          <hr>
+          <p><strong>Detalles:</strong></p>
+          <ul class="list-group">
+            <?php foreach ($noInsertados as $detalle): ?>
+              <li class="list-group-item">
+                <?= htmlspecialchars($detalle) ?>
+              </li>
+            <?php endforeach; ?>
+          </ul>
+        <?php endif; ?>
+
       </div>
+
       <div class="modal-footer">
         <button type="button" class="btn btn-light" data-bs-dismiss="modal">Cerrar</button>
       </div>
@@ -222,6 +254,7 @@ if (isset($_SESSION['status']) && isset($_SESSION['action'])):
   </div>
 </div>
 <?php endif; ?>
+
 
 <!-- Modal Editar Estudiante (Reutilizable) -->
 <div class="modal fade" id="modalEditar" tabindex="-1" aria-labelledby="modalEditarLabel" aria-hidden="true">
@@ -260,9 +293,9 @@ if (isset($_SESSION['status']) && isset($_SESSION['action'])):
 
       <div class="modal-footer">
         <button type="submit" class="btn btn-success">Actualizar</button>
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button> 
       </div>
-    </form>
+    </form> 
   </div>
 </div>
 
@@ -411,10 +444,6 @@ function filtrarYPaginar() {
   });
 
   document.getElementById('filtroEstado').addEventListener('change', () => {
-    // Guardar antes de recargar
-    try {
-      localStorage.setItem('students_estado', document.getElementById('filtroEstado').value || '');
-    } catch(e) {}
     const url = new URL(window.location.href);
     url.searchParams.set('status', document.getElementById('filtroEstado').value);
     // Recarga para que el backend traiga Activos/Eliminados según corresponda
@@ -426,43 +455,14 @@ function filtrarYPaginar() {
 
   // Ejecutar al cargar
   window.addEventListener('DOMContentLoaded', () => {
-    // Restaurar filtros desde localStorage
-    const url = new URL(window.location.href);
-    const hasStatusParam = url.searchParams.has('status');
-    try {
-      const s = localStorage.getItem('students_seccion') || '';
-      const q = localStorage.getItem('students_buscador') || '';
-      const e = localStorage.getItem('students_estado') || '';
-      const seccionEl = document.getElementById('filtroSeccion');
-      const buscadorEl = document.getElementById('buscador');
-      const estadoEl = document.getElementById('filtroEstado');
-
-      let shouldFilter = false;
-      if (seccionEl && s && !seccionEl.value) { seccionEl.value = s; shouldFilter = true; }
-      if (buscadorEl && q && !buscadorEl.value) { buscadorEl.value = q; shouldFilter = true; }
-      // Si no hay status en URL y tenemos uno almacenado, aplicarlo (esto recarga)
-      if (!hasStatusParam && estadoEl && e !== '') {
-        estadoEl.value = e;
-        // Disparará nuestro listener que guarda y recarga
-        const event = new Event('change', { bubbles: true });
-        estadoEl.dispatchEvent(event);
-        return; // detener flujo; la página recargará
-      }
-      if (shouldFilter) {
-        filtrarYPaginar();
-      } else {
-        filtrarYPaginar();
-      }
-    } catch(err) {
-      filtrarYPaginar();
-    }
+    filtrarYPaginar();
   });
 
 // Manejo de edición de estudiantes
 document.querySelectorAll('.btn-editar').forEach(btn => {
   btn.addEventListener('click', function () {
     const studentId = this.getAttribute('data-id');
-    fetch(`/app/controller/getByIdStudentController.php?id=${studentId}`)
+    fetch(`/app/controller/getByIdStudentController.php?id=${studentId}`) 
       .then(response => response.json())
       .then(data => {
   if (data.success) {
@@ -516,22 +516,6 @@ document.querySelectorAll('.btn-editar').forEach(btn => {
       };
     });
   });
-
-  // Guardar en localStorage al cambiar sección y al escribir en buscador
-  (function persistFilters(){
-    const seccionEl = document.getElementById('filtroSeccion');
-    const buscadorEl = document.getElementById('buscador');
-    if (seccionEl) {
-      seccionEl.addEventListener('change', function(){
-        try { localStorage.setItem('students_seccion', this.value || ''); } catch(e) {}
-      });
-    }
-    if (buscadorEl) {
-      buscadorEl.addEventListener('input', function(){
-        try { localStorage.setItem('students_buscador', this.value || ''); } catch(e) {}
-      });
-    }
-  })();
 </script>
 
 <!-- Modal confirmar eliminar -->

@@ -5,8 +5,9 @@ class Student {
     public int $id;
     public string $name; 
     public int $idSeccion;
-    public int $NumerodeLista;
+    public int $NumerodeLista; 
     private int $status = 0;
+    private int $fin = 0;
 
     public static $pdo;
     public static $table;
@@ -134,4 +135,20 @@ public function getBySeccion($idSeccion) {
         return null;
     }
 
+    public function importarDesdeExcel($estudiantes)
+{
+    $sql = "INSERT INTO student (name, idSeccion, NumerodeLista, status, idCorte, fin) VALUES (?, ?, ?, ?, ?, ?)";
+    $stmt = self::$pdo->prepare($sql);
+
+    foreach ($estudiantes as $est) {
+        $stmt->execute([
+            $est['nombre'],
+            $est['idSeccion'],
+            $est['NumerodeLista'],
+            $est['status'],
+            $est['idCorte'],
+            $est['fin']
+        ]);
+    }
+}
 }

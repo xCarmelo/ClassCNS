@@ -253,7 +253,7 @@
             </tr>
             <?php
             // 🚨 Si la materia seleccionada es Informática (id=2) y el estudiante tiene fin=1, se corta la lista
-            if ($materiaSeleccionada === $idInformatica && isset($est['fin']) && $est['fin'] == 1) {
+            if ($materiaSeleccionada === $idInformatica && isset($est['fin']) && $est['fin'] == 1) { 
                 break; // rompe el foreach de estudiantes
             }
         endforeach;

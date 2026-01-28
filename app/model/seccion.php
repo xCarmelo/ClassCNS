@@ -108,6 +108,14 @@ class Seccion {
         $stmt = self::$pdo->prepare($sql);
         return $stmt->execute([':id' => $id]);
     }
+    
+    public function getIdByName($name)
+    {
+        $stmt = $this->pdo->prepare("SELECT id FROM seccion WHERE name = ?");
+        $stmt->execute([$name]);
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+        return $row ? $row['id'] : null;
+    }
 }
 
 

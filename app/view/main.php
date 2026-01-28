@@ -10,7 +10,7 @@
     <div class="collapse navbar-collapse" id="menuHamburguesa">
       <ul class="navbar-nav ms-auto mb-2 mb-lg-0">
         <li class="nav-item">
-          <a href="/app/view/home.php" class="nav-link fs-5 fw-bold"><i class="bi bi-house-door-fill"></i> Home</a>
+          <a href="/app/view/index.php" class="nav-link fs-5 fw-bold"><i class="bi bi-house-door-fill"></i> Home</a>
         </li>
         <li class="nav-item">
             <div class="nav-item dropdown">
