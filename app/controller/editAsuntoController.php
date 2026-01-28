@@ -19,7 +19,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $_SESSION['action'] = 'edit';
 
     $filtros = http_build_query($_GET); // o $_POST si los filtros vienen desde formulario
-    header('Location: getAsuntoController.php?$filtros');
+    header("Location: $base/app/view/asunto.php");
     exit();
 }
 

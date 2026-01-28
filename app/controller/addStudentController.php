@@ -20,5 +20,5 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
 }
 
 // Siempre redirige al controlador principal para mostrar la vista
-header('Location: getStudentController.php');
+header("Location: $base/app/view/estudiantes.php");
 exit();

@@ -1,5 +1,5 @@
 <?php
-require_once __DIR__ . '/../model/indicadorL.php';
+require_once __DIR__ . '/../model/indicadorl.php';
 require_once __DIR__ . '/../model/corte.php';
 require_once __DIR__ . '/../model/materia.php';
 require_once __DIR__ . '/../model/seccion.php';

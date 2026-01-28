@@ -78,7 +78,7 @@ nav.navbar { margin-bottom: 0rem !important; }
 </style>
 
 <div class="home-hero">
-    <img src="/public/assets/logo.jpg" alt="Logo" style="width:90px; border-radius:50%; box-shadow:0 2px 12px #222; margin-bottom:20px;">
+    <img src="<?= $base ?>/public/assets/logo.jpg" alt="Logo" style="width:90px; border-radius:50%; box-shadow:0 2px 12px #222; margin-bottom:20px;">
     <h1>Bienvenido a Carpintería San José</h1>
     <p>Gestión escolar moderna, intuitiva y segura.<br>Administra estudiantes, materias, asistencia y más desde un solo lugar.</p>
 </div>

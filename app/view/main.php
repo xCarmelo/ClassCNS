@@ -1,3 +1,18 @@
+<?php
+$base = '/SanJose'; // Cambia esto si tu carpeta se llama diferente
+?>
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Carpintería San José</title>
+    <link rel="stylesheet" href="<?= $base ?>/public/cssB/bootstrap.min.css">
+    <link href="<?= $base ?>/public/cssB/bootstrap-icons-1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+    <link rel="stylesheet" href="<?= $base ?>/public/css/styles.css">
+    <link rel="icon" type="image/png" href="<?= $base ?>/public/assets/logo-pestaña.png">
+</head>
+<body>
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
   <div class="container-fluid">
     <a class="navbar-brand d-flex align-items-center" href="/app/view/home.php">
@@ -46,4 +61,6 @@
     </div>
   </div>
 </nav>
+</body>
+</html>
 

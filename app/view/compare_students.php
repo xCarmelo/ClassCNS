@@ -1,5 +1,10 @@
 <?php require_once "../view/header.php"; ?>
 
+<link rel="stylesheet" href="<?= $base ?>/public/cssB/bootstrap.min.css">
+<link href="<?= $base ?>/public/cssB/bootstrap-icons-1.10.5/font/bootstrap-icons.css" rel="stylesheet">
+<link rel="stylesheet" href="<?= $base ?>/public/css/styles.css">
+<link rel="icon" type="image/png" href="<?= $base ?>/public/assets/logo-pestaña.png">
+
 <div class="container py-4">
   <div class="d-flex justify-content-between align-items-center mb-3">
     <h2>Comparar Estudiantes (Excel vs. Base de Datos)</h2>

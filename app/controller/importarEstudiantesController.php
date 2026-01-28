@@ -24,7 +24,7 @@ if ($_SERVER['REQUEST_METHOD'] !== 'POST' || !isset($_FILES['archivoExcel'])) {
     $_SESSION['status'] = 'error';
     $_SESSION['action'] = 'import';
     $_SESSION['error']  = 'Acceso no permitido.';
-    header("Location: /app/controller/getStudentController.php");
+    header("Location: $base/app/view/estudiantes.php");
     exit;
 }
 
@@ -32,7 +32,7 @@ if ($_FILES['archivoExcel']['error'] !== 0) {
     $_SESSION['status'] = 'error';
     $_SESSION['action'] = 'import';
     $_SESSION['error']  = 'El archivo Excel es inválido.';
-    header("Location: /app/controller/getStudentController.php");
+    header("Location: $base/app/view/estudiantes.php");
     exit;
 }
 
@@ -168,5 +168,5 @@ try {
 /* ===========================
    REDIRECCIÓN FINAL
    =========================== */
-header("Location: /app/controller/getStudentController.php");
+header("Location: $base/app/view/estudiantes.php");
 exit;

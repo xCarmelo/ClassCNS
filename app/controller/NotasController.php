@@ -15,6 +15,7 @@ require_once __DIR__ . '/../model/corte.php';
 require_once __DIR__ . '/../model/student.php';
 require_once __DIR__ . '/../model/enlace.php';
 require_once __DIR__ . '/../model/Database.php';
+require_once __DIR__ . '/../model/nota.php';
 
 // Acción (acepta GET o POST)
 $action = $_REQUEST['action'] ?? null;

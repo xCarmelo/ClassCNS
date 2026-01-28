@@ -1,10 +1,10 @@
 <?php
 
-require_once '../model/asunto.php';
-require_once '../model/student.php';
-require_once '../model/seccion.php';
-require_once '../model/materia.php';
-require_once '../model/corte.php';
+require_once __DIR__ . '/../model/asunto.php';
+require_once __DIR__ . '/../model/student.php';
+require_once __DIR__ . '/../model/seccion.php';
+require_once __DIR__ . '/../model/materia.php';
+require_once __DIR__ . '/../model/corte.php';
 
  function showSeccion (){
         $asuntoModel = new Asunto();

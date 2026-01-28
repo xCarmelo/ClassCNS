@@ -1,6 +1,6 @@
 <?php
 
-require_once '../model/materia.php';
+require_once __DIR__ . '/../model/materia.php';
 
  function showMateria (){
         $materiaModel = new Materia();
@@ -10,4 +10,3 @@ require_once '../model/materia.php';
 }
 
 showMateria();
-    

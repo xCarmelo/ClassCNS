@@ -14,6 +14,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $_SESSION['status'] = $exito ? 'success' : 'error';
     $_SESSION['action'] = 'edit';
 
-    header('Location: getStudentController.php');
+    header("Location: $base/app/view/estudiantes.php");
     exit();
 }

@@ -11,6 +11,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['id'])) {
     $_SESSION['status'] = $exito ? 'success' : 'error';
     $_SESSION['action'] = 'delete';
 
-    header("Location: getAsuntoController.php");
+    header("Location: $base/app/view/asunto.php");
     exit();
 }

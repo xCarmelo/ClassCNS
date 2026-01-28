@@ -1,8 +1,7 @@
 <?php
 
-require_once '../model/student.php'; 
-require_once '../model/materia.php';
-require_once '../model/corte.php';
+require_once __DIR__ . '/../model/student.php';
+require_once __DIR__ . '/../model/seccion.php';
 
  function showStudent (){
         $studentModel = new Student();
@@ -22,4 +21,3 @@ require_once '../model/corte.php';
 }
 
 showStudent();
-    

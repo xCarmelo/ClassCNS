@@ -2,8 +2,7 @@
 
  function showMateria (){
 
-        require "../view/convertidor.php";
+        require_once __DIR__ . '/../view/convertidor.php';
 }
 
 showMateria();
-    

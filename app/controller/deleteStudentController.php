@@ -11,6 +11,6 @@ if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['id'])) {
     $_SESSION['status'] = $exito ? 'success' : 'error';
     $_SESSION['action'] = 'delete'; // borrado lógico (status=0)
 
-    header("Location: getStudentController.php");
+    header("Location: $base/app/view/estudiantes.php");
     exit();
 }

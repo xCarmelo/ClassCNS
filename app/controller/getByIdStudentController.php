@@ -1,5 +1,5 @@
 <?php
-require_once '../model/student.php';
+require_once __DIR__ . '/../model/student.php';
 
 // Asegúrate de que sea una petición GET con un ID válido
 if ($_SERVER['REQUEST_METHOD'] === 'GET' && isset($_GET['id'])) {
