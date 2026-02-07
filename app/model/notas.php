@@ -54,6 +54,7 @@ class Nota {
             ]);
         }
     }
+// ... dentro de la clase Nota
 
     // Obtener todas las notas según filtros
     public function getNotasByFiltros($idSeccion, $idMateria, $anio, $idCorte) {
@@ -68,16 +69,19 @@ class Nota {
                   AND ind.idMateria = :idMateria 
                   AND ind.`año` = :anio 
                   AND ind.idCorte = :idCorte
-                ORDER BY s.name, ind.id, c.id";
+                ORDER BY s.name ASC, ind.id ASC, c.id ASC"; // ✅ Forzamos el orden ascendente
+        
         $stmt = self::$pdo->prepare($sql);
         $stmt->execute([
             ':idSeccion' => $idSeccion,
             ':idMateria' => $idMateria,
-            ':anio' => $anio,
-            ':idCorte' => $idCorte
+            ':anio'      => $anio,
+            ':idCorte'   => $idCorte
         ]);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
+
+// ... resto de la clase
 
     // Obtener notas de un estudiante para varios criterios
     public function getNotasByStudentAndCriterios($idStudent, array $criteriosIds) {

@@ -2,153 +2,277 @@
 require_once __DIR__ . '/Database.php';
 
 class Student {
+
     public int $id;
-    public string $name; 
+    public string $name;
     public int $idSeccion;
-    public int $NumerodeLista; 
+    public int $NumerodeLista;
+    public int $fin = 0;
+
     private int $status = 0;
-    private int $fin = 0;
 
     public static $pdo;
     public static $table;
     public static $db;
 
     public function __construct() {
-    self::$db = Database::getInstance();
-    self::$pdo = self::$db->getConnection();
-    $this->status = self::$db->getConnectionStatus();
-    self::$table = 'student';
+        self::$db = Database::getInstance();
+        self::$pdo = self::$db->getConnection();
+        $this->status = self::$db->getConnectionStatus();
+        self::$table = 'student';
     }
 
-public function getAllStudents(?int $statusFilter = 1) {
-    if ($this->status === 1) {
+    /* =========================================================
+       LISTAR
+    ========================================================= */
+
+    public function getAllStudents(?int $statusFilter = 1) {
+        if ($this->status !== 1) {
+            return [];
+        }
+
         $sql = "SELECT 
-                    s.id, 
-                    s.name, 
-                    s.idSeccion, 
+                    s.id,
+                    s.name,
+                    s.idSeccion,
                     s.NumerodeLista,
-                    COALESCE(s.status,1) AS status,
+                    COALESCE(s.fin, 0) AS fin,
+                    COALESCE(s.status, 1) AS status,
                     sec.name AS seccion_name
-                FROM " . self::$table . " s
+                FROM student s
                 LEFT JOIN seccion sec ON s.idSeccion = sec.id";
 
-        $params = [];
         if ($statusFilter === 1) {
-            $sql .= " WHERE COALESCE(s.status,1) = 1"; // Activos (NULL tratado como activo)
+            $sql .= " WHERE COALESCE(s.status,1) = 1";
         } elseif ($statusFilter === 0) {
-            $sql .= " WHERE s.status = 0"; // Eliminados
+            $sql .= " WHERE s.status = 0";
         }
-        $sql .= " ORDER BY s.id ASC";
-        
+
+        $sql .= " ORDER BY s.idSeccion ASC, s.NumerodeLista ASC";
+
         $stmt = self::$pdo->prepare($sql);
-        if ($stmt->execute($params)) {
-            return $stmt->fetchAll(PDO::FETCH_ASSOC);
-        }
-    }
-    return [];
-}
+        $stmt->execute();
 
-
-public function getBySeccion($idSeccion) {
-    $sql = "SELECT * FROM student WHERE idSeccion = :idSeccion AND COALESCE(status,1) = 1 ORDER BY NumerodeLista ASC";
-    $stmt = self::$pdo->prepare($sql);
-    $stmt->execute([':idSeccion' => $idSeccion]);
-    return $stmt->fetchAll(PDO::FETCH_ASSOC);
-}
-
-
-    public function deleteStudent(){
-        // Borrado lógico: status = 0
-        if($this->status === 1){
-            $smt = self::$pdo->prepare('UPDATE ' . self::$table . ' SET status = 0 WHERE id = :id');
-            $smt->bindParam(':id', $this->id, PDO::PARAM_INT);
-            if($smt->execute()){
-                return true;
-            }
-        }
-        return false;
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function restoreStudent(){
-        // Restaurar lógico: status = 1
-        if($this->status === 1){
-            $smt = self::$pdo->prepare('UPDATE ' . self::$table . ' SET status = 1 WHERE id = :id');
-            $smt->bindParam(':id', $this->id, PDO::PARAM_INT);
-            if($smt->execute()){
-                return true;
-            }
-        }
-        return false;
+    public function getBySeccion(int $idSeccion) {
+        $sql = "SELECT * 
+                FROM student 
+                WHERE idSeccion = :idSeccion 
+                  AND COALESCE(status,1) = 1
+                ORDER BY NumerodeLista ASC";
+
+        $stmt = self::$pdo->prepare($sql);
+        $stmt->execute([':idSeccion' => $idSeccion]);
+
+        return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
 
-    public function addStudent() {
-        if($this->status === 1){
-            // Validación de unicidad por sección
-            if ($this->numeroListaExiste($this->idSeccion, $this->NumerodeLista)) {
-                return false;
-            }
+    public function getStudentById(int $id) {
+        $sql = "SELECT * FROM student WHERE id = :id LIMIT 1";
+        $stmt = self::$pdo->prepare($sql);
+        $stmt->execute([':id' => $id]);
 
-            $smt = self::$pdo->prepare('INSERT INTO ' . self::$table . ' (name, idSeccion, NumerodeLista, status) VALUES (:name, :idSeccion, :NumerodeLista, 1)');
-            $smt->bindParam(':name', $this->name, PDO::PARAM_STR);
-            $smt->bindParam(':idSeccion', $this->idSeccion, PDO::PARAM_INT);
-            $smt->bindParam(':NumerodeLista', $this->NumerodeLista, PDO::PARAM_INT);
-
-            if($smt->execute()){
-                return true;
-            }
-        }
-        return false;
+        return $stmt->fetch(PDO::FETCH_ASSOC) ?: null;
     }
 
-    // Verifica si ya existe un Número de lista en la misma sección (solo activos)
+    /* =========================================================
+       NUMERO DE LISTA
+    ========================================================= */
+
+    public function getNextNumeroListaBySeccion(int $idSeccion): int {
+        $sql = "SELECT MAX(NumerodeLista) AS ultimo
+                FROM student
+                WHERE idSeccion = :idSeccion
+                  AND COALESCE(status,1) = 1";
+
+        $stmt = self::$pdo->prepare($sql);
+        $stmt->execute([':idSeccion' => $idSeccion]);
+
+        $row = $stmt->fetch(PDO::FETCH_ASSOC);
+
+        return ($row && $row['ultimo'] !== null)
+            ? ((int)$row['ultimo'] + 1)
+            : 1;
+    }
+
+    /* =========================================================
+       FIN (DIVISIÓN DE LISTA)
+    ========================================================= */
+
+    public function resetFinBySeccion(int $idSeccion): void {
+        $sql = "UPDATE student SET fin = 0 WHERE idSeccion = :idSeccion";
+        $stmt = self::$pdo->prepare($sql);
+        $stmt->execute([':idSeccion' => $idSeccion]);
+    }
+
+    /* =========================================================
+       CREAR
+    ========================================================= */
+
+    public function addStudent(): bool {
+        if ($this->status !== 1) {
+            return false;
+        }
+
+        self::$pdo->beginTransaction();
+
+        try {
+            // Si marcará fin, resetear antes
+            if ($this->fin === 1) {
+                $this->resetFinBySeccion($this->idSeccion);
+            }
+
+            // Desplazar números si se repite
+            $sqlCheck = "SELECT id 
+                         FROM student 
+                         WHERE idSeccion = :idSeccion
+                           AND NumerodeLista = :numero
+                           AND COALESCE(status,1) = 1
+                         LIMIT 1";
+
+            $stmtCheck = self::$pdo->prepare($sqlCheck);
+            $stmtCheck->execute([
+                ':idSeccion' => $this->idSeccion,
+                ':numero' => $this->NumerodeLista
+            ]);
+
+            if ($stmtCheck->fetchColumn()) {
+                $sqlShift = "UPDATE student
+                             SET NumerodeLista = NumerodeLista + 1
+                             WHERE idSeccion = :idSeccion
+                               AND NumerodeLista >= :numero
+                               AND COALESCE(status,1) = 1
+                             ORDER BY NumerodeLista DESC";
+
+                $stmtShift = self::$pdo->prepare($sqlShift);
+                $stmtShift->execute([
+                    ':idSeccion' => $this->idSeccion,
+                    ':numero' => $this->NumerodeLista
+                ]);
+            }
+
+            // Insertar
+            $sql = "INSERT INTO student
+                    (name, idSeccion, NumerodeLista, status, fin)
+                    VALUES
+                    (:name, :idSeccion, :NumerodeLista, 1, :fin)";
+
+            $stmt = self::$pdo->prepare($sql);
+            $stmt->execute([
+                ':name' => $this->name,
+                ':idSeccion' => $this->idSeccion,
+                ':NumerodeLista' => $this->NumerodeLista,
+                ':fin' => $this->fin
+            ]);
+
+            self::$pdo->commit();
+            return true;
+
+        } catch (Throwable $e) {
+            self::$pdo->rollBack();
+            error_log($e->getMessage());
+            return false;
+        }
+    }
+
+    /* =========================================================
+       ACTUALIZAR
+    ========================================================= */
+
+    public function updateStudent(): bool {
+        if ($this->status !== 1) {
+            return false;
+        }
+
+        self::$pdo->beginTransaction();
+
+        try {
+            if ($this->fin === 1) {
+                $this->resetFinBySeccion($this->idSeccion);
+            }
+
+            $sql = "UPDATE student
+                    SET name = :name,
+                        idSeccion = :idSeccion,
+                        NumerodeLista = :NumerodeLista,
+                        fin = :fin
+                    WHERE id = :id";
+
+            $stmt = self::$pdo->prepare($sql);
+            $stmt->execute([
+                ':name' => $this->name,
+                ':idSeccion' => $this->idSeccion,
+                ':NumerodeLista' => $this->NumerodeLista,
+                ':fin' => $this->fin,
+                ':id' => $this->id
+            ]);
+
+            self::$pdo->commit();
+            return true;
+
+        } catch (Throwable $e) {
+            self::$pdo->rollBack();
+            error_log($e->getMessage());
+            return false;
+        }
+    }
+
+    /* =========================================================
+       BORRADO LÓGICO
+    ========================================================= */
+
+    public function deleteStudent(): bool {
+        $sql = "UPDATE student SET status = 0 WHERE id = :id";
+        $stmt = self::$pdo->prepare($sql);
+        return $stmt->execute([':id' => $this->id]);
+    }
+
+    public function restoreStudent(): bool {
+        $sql = "UPDATE student SET status = 1 WHERE id = :id";
+        $stmt = self::$pdo->prepare($sql);
+        return $stmt->execute([':id' => $this->id]);
+    }
+
+    /* =========================================================
+       IMPORTACIÓN (NO TOCAR)
+    ========================================================= */
+
+    public function importarDesdeExcel(array $estudiantes): void {
+        $sql = "INSERT INTO student
+                (name, idSeccion, NumerodeLista, status, idCorte, fin)
+                VALUES (?, ?, ?, ?, ?, ?)";
+
+        $stmt = self::$pdo->prepare($sql);
+
+        foreach ($estudiantes as $est) {
+            $stmt->execute([
+                $est['nombre'],
+                $est['idSeccion'],
+                $est['NumerodeLista'],
+                $est['status'],
+                $est['idCorte'],
+                $est['fin']
+            ]);
+        }
+    }
+
     public function numeroListaExiste(int $idSeccion, int $numero): bool {
-        $sql = 'SELECT 1 FROM ' . self::$table . ' WHERE idSeccion = :idSeccion AND NumerodeLista = :numero AND COALESCE(status,1) = 1 LIMIT 1';
-        $stmt = self::$pdo->prepare($sql);
-        $stmt->execute([':idSeccion' => $idSeccion, ':numero' => $numero]);
-        return (bool)$stmt->fetchColumn();
-    }
+    $sql = "SELECT 1 
+            FROM student 
+            WHERE idSeccion = :idSeccion
+              AND NumerodeLista = :numero
+              AND COALESCE(status,1) = 1
+            LIMIT 1";
 
-    public function updateStudent() {
-        if($this->status === 1){
-            $smt = self::$pdo->prepare('UPDATE ' . self::$table . ' SET name = :name, idSeccion = :idSeccion, NumerodeLista = :NumerodeLista WHERE id = :id');
-            $smt->bindParam(':name', $this->name, PDO::PARAM_STR);
-            $smt->bindParam(':idSeccion', $this->idSeccion, PDO::PARAM_INT);
-            $smt->bindParam(':NumerodeLista', $this->NumerodeLista, PDO::PARAM_INT);
-            $smt->bindParam(':id', $this->id, PDO::PARAM_INT);
-
-            if($smt->execute()){
-                return true;
-            }
-        }
-        return false;
-    }
-
-    public function getStudentById($id) {
-        if($this->status === 1){
-            $smt = self::$pdo->prepare('SELECT * FROM ' . self::$table . ' WHERE id = :id');
-            $smt->bindParam(':id', $id, PDO::PARAM_INT);
-
-            if($smt->execute()){
-                return $smt->fetch(PDO::FETCH_ASSOC);
-            }
-        }
-        return null;
-    }
-
-    public function importarDesdeExcel($estudiantes)
-{
-    $sql = "INSERT INTO student (name, idSeccion, NumerodeLista, status, idCorte, fin) VALUES (?, ?, ?, ?, ?, ?)";
     $stmt = self::$pdo->prepare($sql);
+    $stmt->execute([
+        ':idSeccion' => $idSeccion,
+        ':numero' => $numero
+    ]);
 
-    foreach ($estudiantes as $est) {
-        $stmt->execute([
-            $est['nombre'],
-            $est['idSeccion'],
-            $est['NumerodeLista'],
-            $est['status'],
-            $est['idCorte'],
-            $est['fin']
-        ]);
-    }
+    return (bool)$stmt->fetchColumn();
 }
-}
+
+} 

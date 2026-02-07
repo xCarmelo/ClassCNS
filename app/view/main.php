@@ -15,9 +15,9 @@ $base = '/SanJose'; // Cambia esto si tu carpeta se llama diferente
 <body>
 <nav class="navbar navbar-expand-lg navbar-dark bg-dark mb-4">
   <div class="container-fluid">
-    <a class="navbar-brand d-flex align-items-center" href="/app/view/home.php">
-      <img src="/public/assets/São José Design Católico.jpg" alt="Logo" width="40" height="40" class="d-inline-block align-top rounded-circle me-2">
-      <span style="font-size:1.5rem; font-weight:bold;">Carpintería San José</span>
+    <a class="navbar-brand d-flex align-items-center" href="/app/view/index.php">
+      <img src="/public/assets/logo.jpg" alt="Logo" width="40" height="40" class="d-inline-block align-top rounded-circle me-2">
+      <span style="font-size:1.5rem; font-weight:bold;">Mi Bitácora Digital </span>
     </a>
     <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target="#menuHamburguesa" aria-controls="menuHamburguesa" aria-expanded="false" aria-label="Toggle navigation">
       <span class="navbar-toggler-icon"></span>
@@ -54,9 +54,10 @@ $base = '/SanJose'; // Cambia esto si tu carpeta se llama diferente
             <li><a class="dropdown-item" href="/app/controller/getIndicadorDeLogroController.php"><i class="bi bi-bar-chart-line-fill"></i> Indicadores</a></li>
           </ul>
         </li>
-        <li class="nav-item">
+        <!--<li class="nav-item">
           <a href="/app/controller/getAudioController.php" class="nav-link fs-5 fw-bold"><i class="bi bi-volume-up-fill"></i> Texto a voz</a>
         </li>
+        -->
       </ul>
     </div>
   </div>
