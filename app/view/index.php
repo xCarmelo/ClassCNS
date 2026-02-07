@@ -70,12 +70,59 @@ nav.navbar { margin-bottom: 0rem !important; }
     background: #2c3e50;
 }
 
+/* Botón de vaciar base de datos */
+.vaciar-db-container {
+    display: flex;
+    justify-content: center;
+    margin: 40px 0;
+}
+.btn-vaciar-db {
+    background: linear-gradient(135deg, #e74c3c 0%, #c0392b 100%);
+    color: white;
+    border: none;
+    padding: 12px 24px;
+    border-radius: 10px;
+    font-weight: 600;
+    font-size: 1.1rem;
+    display: flex;
+    align-items: center;
+    gap: 10px;
+    transition: all 0.3s;
+    box-shadow: 0 4px 15px rgba(231, 76, 60, 0.3);
+}
+.btn-vaciar-db:hover {
+    transform: translateY(-3px);
+    box-shadow: 0 6px 20px rgba(231, 76, 60, 0.4);
+    background: linear-gradient(135deg, #c0392b 0%, #a93226 100%);
+}
+.btn-vaciar-db:active {
+    transform: translateY(0);
+}
+.btn-vaciar-db i {
+    font-size: 1.3rem;
+}
+
+/* Estilos para modales */
+.modal-danger .modal-header {
+    background-color: #e74c3c;
+    color: white;
+}
+.modal-warning .modal-header {
+    background-color: #f39c12;
+    color: white;
+}
 </style>
 
 <div class="home-hero">
     <img src="/public/assets/logo.jpg" alt="Logo" style="width:90px; border-radius:50%; box-shadow:0 2px 12px #222; margin-bottom:20px;">
-    <h1>Bienvenido a Carpintería San José</h1>
+    <h1>Bienvenido a Mi Bitácora Digital</h1>
     <p>Gestión escolar moderna, intuitiva y segura.<br>Administra estudiantes, materias, asistencia y más desde un solo lugar.</p>
+</div>
+
+<div class="vaciar-db-container">
+    <button type="button" class="btn-vaciar-db" data-bs-toggle="modal" data-bs-target="#modalConfirmarVaciado">
+        <i class="bi bi-database-x"></i> Vaciar Base de Datos
+    </button>
 </div>
 
 <div class="home-cards">
@@ -105,4 +152,201 @@ nav.navbar { margin-bottom: 0rem !important; }
     </div>
 </div>
 
+<!-- Modal de Confirmación para Vaciar Base de Datos -->
+<div class="modal fade modal-danger" id="modalConfirmarVaciado" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title">⚠️ Confirmar Vaciado de Base de Datos</h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-danger">
+                    <h4 class="alert-heading"><i class="bi bi-exclamation-triangle-fill"></i> ADVERTENCIA CRÍTICA</h4>
+                    <p class="mb-0">
+                        Esta acción <strong>ELIMINARÁ PERMANENTEMENTE</strong> todos los datos del sistema:
+                    </p>
+                </div>
+                <ul class="list-group mb-3">
+                    <li class="list-group-item list-group-item-danger">
+                        <i class="bi bi-person-fill-x"></i> Todos los estudiantes
+                    </li>
+                    <li class="list-group-item list-group-item-danger">
+                        <i class="bi bi-journal-x"></i> Todas las materias y asuntos
+                    </li>
+                    <li class="list-group-item list-group-item-danger">
+                        <i class="bi bi-clipboard-x"></i> Todas las calificaciones
+                    </li>
+                    <li class="list-group-item list-group-item-danger">
+                        <i class="bi bi-calendar-x"></i> Toda la asistencia
+                    </li>
+                    <li class="list-group-item list-group-item-danger">
+                        <i class="bi bi-graph-up-arrow"></i> Todos los indicadores y criterios
+                    </li>
+                </ul>
+                <p class="text-danger fw-bold">
+                    <i class="bi bi-shield-exclamation"></i> Esta operación NO se puede deshacer. 
+                    Se recomienda hacer una copia de seguridad primero.
+                </p>
+                <div class="form-check mb-3">
+                    <input class="form-check-input" type="checkbox" id="confirmCheckbox">
+                    <label class="form-check-label" for="confirmCheckbox">
+                        Confirmo que entiendo que esta acción eliminará todos los datos permanentemente.
+                    </label>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+                <button type="button" class="btn btn-danger" id="btnConfirmarVaciado" disabled>
+                    <i class="bi bi-database-x"></i> Sí, vaciar base de datos
+                </button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal de Resultado del Vaciado -->
+<div class="modal fade modal-warning" id="modalResultadoVaciado" tabindex="-1" aria-hidden="true">
+    <div class="modal-dialog modal-dialog-centered">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title" id="modalResultadoTitulo"></h5>
+                <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body" id="modalResultadoMensaje"></div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-warning" data-bs-dismiss="modal">Cerrar</button>
+            </div>
+        </div>
+    </div>
+</div>
+
 <?php include 'footer.php'; ?>
+
+<script>
+// Versión mejorada con manejo de errores
+document.addEventListener('DOMContentLoaded', function() {
+    const confirmCheckbox = document.getElementById('confirmCheckbox');
+    const btnConfirmarVaciado = document.getElementById('btnConfirmarVaciado');
+    
+    if (confirmCheckbox && btnConfirmarVaciado) {
+        confirmCheckbox.addEventListener('change', function() {
+            btnConfirmarVaciado.disabled = !this.checked;
+        });
+    }
+    
+    // Manejar el clic en el botón de confirmación
+    if (btnConfirmarVaciado) {
+        btnConfirmarVaciado.addEventListener('click', async function() {
+            const originalText = this.innerHTML;
+            this.disabled = true;
+            this.innerHTML = '<span class="spinner-border spinner-border-sm"></span> Procesando...';
+            
+            try {
+                // Hacer petición POST
+                const response = await fetch('/app/controller/VBD.php', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded',
+                    },
+                    body: new URLSearchParams({
+                        confirm: 'true',
+                        timestamp: Date.now()
+                    })
+                });
+                
+                if (!response.ok) {
+                    throw new Error(`Error HTTP: ${response.status} ${response.statusText}`);
+                }
+                
+                const data = await response.json();
+                
+                // Ocultar modal de confirmación
+                const modalConfirmar = bootstrap.Modal.getInstance(document.getElementById('modalConfirmarVaciado'));
+                if (modalConfirmar) modalConfirmar.hide();
+                
+                // Mostrar resultado
+                mostrarResultado(data);
+                
+               
+                
+            } catch (error) {
+                console.error('Error en la solicitud:', error);
+                mostrarError(error);
+                this.disabled = false;
+                this.innerHTML = originalText;
+            }
+        });
+    }
+    
+    // Función para mostrar resultado
+    function mostrarResultado(data) {
+        const titulo = document.getElementById('modalResultadoTitulo');
+        const mensaje = document.getElementById('modalResultadoMensaje');
+        
+        if (!titulo || !mensaje) return;
+        
+        if (data.status === 'success' || data.status === 'warning') {
+            const isSuccess = data.status === 'success';
+            titulo.textContent = isSuccess ? '✅ Base de datos vaciada' : '⚠️ Base de datos vaciada con advertencias';
+            titulo.className = isSuccess ? 'modal-title text-success' : 'modal-title text-warning';
+            
+            let detallesHTML = '';
+            if (data.details && typeof data.details === 'object') {
+                detallesHTML = '<div class="mt-3"><h6>Detalles:</h6><ul class="list-group">';
+                for (const [key, value] of Object.entries(data.details)) {
+                    detallesHTML += `<li class="list-group-item"><strong>${key}:</strong> ${value}</li>`;
+                }
+                detallesHTML += '</ul></div>';
+            }
+            
+            mensaje.innerHTML = `
+                <div class="alert ${isSuccess ? 'alert-success' : 'alert-warning'}">
+                    <h5><i class="bi ${isSuccess ? 'bi-check-circle-fill' : 'bi-exclamation-triangle-fill'}"></i> ${data.message}</h5>
+                    ${data.resumen ? `<p class="mb-0">${data.resumen}</p>` : ''}
+                </div>
+                ${detallesHTML}
+            `;
+        } else {
+            titulo.textContent = '❌ Error al vaciar base de datos';
+            titulo.className = 'modal-title text-danger';
+            mensaje.innerHTML = `
+                <div class="alert alert-danger">
+                    <h5><i class="bi bi-exclamation-triangle-fill"></i> Error</h5>
+                    <p class="mb-0">${data.message || 'Error desconocido.'}</p>
+                    ${data.details ? `<p class="mt-2 mb-0"><small><strong>Detalles:</strong> ${data.details}</small></p>` : ''}
+                </div>
+            `;
+        }
+        
+        // Mostrar modal
+        const modalResultado = new bootstrap.Modal(document.getElementById('modalResultadoVaciado'));
+        modalResultado.show();
+    }
+    
+    // Función para mostrar error de conexión
+    function mostrarError(error) {
+        const modalConfirmar = bootstrap.Modal.getInstance(document.getElementById('modalConfirmarVaciado'));
+        if (modalConfirmar) modalConfirmar.hide();
+        
+        const titulo = document.getElementById('modalResultadoTitulo');
+        const mensaje = document.getElementById('modalResultadoMensaje');
+        
+        if (!titulo || !mensaje) return;
+        
+        titulo.textContent = '❌ Error de conexión';
+        titulo.className = 'modal-title text-danger';
+        mensaje.innerHTML = `
+            <div class="alert alert-danger">
+                <h5><i class="bi bi-exclamation-triangle-fill"></i> Error de conexión</h5>
+                <p class="mb-0">No se pudo conectar con el servidor.</p>
+                <p class="mt-2 mb-0"><small><strong>Detalles:</strong> ${error.message}</small></p>
+                <p class="mt-1 mb-0"><small>Verifica tu conexión y que el servidor esté funcionando.</small></p>
+            </div>
+        `;
+        
+        const modalResultado = new bootstrap.Modal(document.getElementById('modalResultadoVaciado'));
+        modalResultado.show();
+    }
+});
+</script>

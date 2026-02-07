@@ -5,13 +5,17 @@ require_once __DIR__ . '/../model/Database.php';
 require_once __DIR__ . '/../model/asistencia.php';
 require_once __DIR__ . '/../model/student.php';
 require_once __DIR__ . '/../model/tipoAsistencia.php';
+require_once __DIR__ . '/../model/seccion.php';
+require_once __DIR__ . '/../model/materia.php';
+
 
 $db = Database::getInstance();
-$pdo = method_exists($db, 'getConnection') ? $db->getConnection() : $db; // soporte flexible
+$pdo = method_exists($db, 'getConnection') ? $db->getConnection() : $db;
 $asistenciaModel = new Asistencia($pdo);
 $studentModel = new Student();
 $tipoAsistenciaModel = new TipoAsistencia($pdo);
-
+$seccionModel = new Seccion();
+$materiaModel = new Materia();
 
 // ID real de Informática en tu BD
 $idInformatica = 2;
@@ -21,8 +25,30 @@ $idSeccion = isset($_GET['seccion']) ? $_GET['seccion'] : '';
 $idCorte   = isset($_GET['corte']) ? $_GET['corte'] : '';
 $idMateria = isset($_GET['materia']) ? intval($_GET['materia']) : '';
 
+// Obtener nombres para mostrar en la vista
+$nombreSeccion = '';
+$nombreMateria = '';
+
+if ($idSeccion) {
+    // Si tu modelo Seccion tiene método getById o similar, ajústalo
+    // Por ahora, asumamos que existe un método getSeccionById o similar
+    // Si no existe, puedes usar una consulta directa temporal
+    $seccionData = $seccionModel->getSeccionById($idSeccion) ?? [];
+    $nombreSeccion = $seccionData['name'] ?? '';
+}
+
+if ($idMateria) {
+    // Usar el método correcto: find() en lugar de getMateriaById()
+    $materiaData = $materiaModel->find($idMateria) ?? [];
+    $nombreMateria = $materiaData['name'] ?? '';
+}
+
 // Obtener estudiantes de la sección seleccionada (para la vista)
-$estudiantes = $idSeccion ? $studentModel->getBySeccion($idSeccion) : [];
+$estudiantes = [];
+if ($idSeccion) {
+    $estudiantes = $studentModel->getBySeccion($idSeccion);
+}
+
 $tiposAsistencia = $tipoAsistenciaModel->obtenerTodos();
 
 // ---- Procesar guardado masivo ----
@@ -37,8 +63,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tipo_asistencia'])) {
 
     // Validaciones mínimas
     if (empty($postedIdSeccion) || empty($postedIdCorte) || empty($postedIdMateria) || empty($fecha) || $nombreDelTema === '') {
-        $_SESSION['flash'] = ['type' => 'warning', 'message' => 'Faltan datos obligatorios (sección, corte, materia, fecha o tema).'];
-        header('Location: nuevaAsistenciaController.php?seccion=' . urlencode($postedIdSeccion) . '&corte=' . urlencode($postedIdCorte) . '&materia=' . urlencode($postedIdMateria));
+        $_SESSION['flash'] = [
+            'type' => 'warning', 
+            'message' => 'Faltan datos obligatorios (sección, corte, materia, fecha o tema).'
+        ];
+        header('Location: nuevaAsistenciaController.php?seccion=' . urlencode($postedIdSeccion) . 
+                '&corte=' . urlencode($postedIdCorte) . 
+                '&materia=' . urlencode($postedIdMateria) .
+                '&nombre_seccion=' . urlencode($nombreSeccion) .
+                '&nombre_materia=' . urlencode($nombreMateria));
         exit();
     }
 
@@ -63,8 +96,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tipo_asistencia'])) {
     }
     if (!empty($faltantes)) {
         $primero = $faltantes[0];
-        $_SESSION['flash'] = ['type' => 'warning', 'message' => 'Debes seleccionar el tipo de asistencia para todos los estudiantes mostrados. Falta: ' . $primero . ' (y otros si aplica).'];
-        header('Location: nuevaAsistenciaController.php?seccion=' . urlencode($postedIdSeccion) . '&corte=' . urlencode($postedIdCorte) . '&materia=' . urlencode($postedIdMateria));
+        $_SESSION['flash'] = [
+            'type' => 'warning', 
+            'message' => 'Debes seleccionar el tipo de asistencia para todos los estudiantes mostrados. Falta: ' . $primero . ' (y otros si aplica).'
+        ];
+        header('Location: nuevaAsistenciaController.php?seccion=' . urlencode($postedIdSeccion) . 
+                '&corte=' . urlencode($postedIdCorte) . 
+                '&materia=' . urlencode($postedIdMateria) .
+                '&nombre_seccion=' . urlencode($nombreSeccion) .
+                '&nombre_materia=' . urlencode($nombreMateria));
         exit();
     }
 
@@ -81,6 +121,7 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tipo_asistencia'])) {
             'nombreDelTema' => $nombreDelTema,
             'Fecha' => $fecha
         ]);
+        
         if (!$idSesion) {
             throw new Exception('Error al crear la sesión de asistencia.');
         }
@@ -105,20 +146,33 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST' && isset($_POST['tipo_asistencia'])) {
 
         $pdo->commit();
 
-    // Éxito: redirigir al listado con mensaje flash
-    $_SESSION['flash'] = ['type' => 'success', 'message' => 'Asistencia guardada correctamente. Filas insertadas: ' . $inserted];
-    header('Location: asistenciaController.php?seccion=' . urlencode($postedIdSeccion) . '&corte=' . urlencode($postedIdCorte) . '&materia=' . urlencode($postedIdMateria));
-    exit();
+        // Éxito: redirigir al listado con mensaje flash
+        $_SESSION['flash'] = [
+            'type' => 'success', 
+            'message' => 'Asistencia guardada correctamente. Filas insertadas: ' . $inserted
+        ];
+        header('Location: asistenciaController.php?seccion=' . urlencode($postedIdSeccion) . 
+                '&corte=' . urlencode($postedIdCorte) . 
+                '&materia=' . urlencode($postedIdMateria));
+        exit();
 
     } catch (Exception $e) {
         $pdo->rollBack();
-    // enviar mensaje de error
-    $err = $e->getMessage();
-    $_SESSION['flash'] = ['type' => 'danger', 'message' => 'Error al guardar asistencia: ' . $err];
-    header('Location: nuevaAsistenciaController.php?seccion=' . urlencode($postedIdSeccion) . '&corte=' . urlencode($postedIdCorte) . '&materia=' . urlencode($postedIdMateria));
-    exit();
+        // enviar mensaje de error
+        $err = $e->getMessage();
+        $_SESSION['flash'] = [
+            'type' => 'danger', 
+            'message' => 'Error al guardar asistencia: ' . $err
+        ];
+        header('Location: nuevaAsistenciaController.php?seccion=' . urlencode($postedIdSeccion) . 
+                '&corte=' . urlencode($postedIdCorte) . 
+                '&materia=' . urlencode($postedIdMateria) .
+                '&nombre_seccion=' . urlencode($nombreSeccion) .
+                '&nombre_materia=' . urlencode($nombreMateria));
+        exit();
     }
 }
 
 // Si no hay POST, mostramos la vista
+// Pasar las variables necesarias a la vista
 require __DIR__ . '/../view/nuevaAsistencia.php';

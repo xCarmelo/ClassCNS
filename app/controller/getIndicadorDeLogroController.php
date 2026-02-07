@@ -38,53 +38,67 @@ class IndicadorLController {
     }
 
     // Guardar nuevo indicador (con transacción)
-    public function store($post) {
-        $name      = $post['name'] ?? '';
-        $anio      = isset($post['anio']) ? (int)$post['anio'] : date('Y');
-        $idCorte   = isset($post['idCorte']) ? (int)$post['idCorte'] : null;
-        $idMateria = isset($post['idMateria']) ? (int)$post['idMateria'] : null;
-        $secciones = $post['secciones'] ?? [];
+public function store($post) {
+    $name      = $post['name'] ?? '';
+    $anio      = isset($post['anio']) ? (int)$post['anio'] : date('Y');
+    $idCorte   = isset($post['idCorte']) ? (int)$post['idCorte'] : null;
+    $idMateria = isset($post['idMateria']) ? (int)$post['idMateria'] : null;
+    $secciones = $post['secciones'] ?? [];
 
-        $db  = Database::getInstance();
-        $pdo = $db->getConnection();
+    $db  = Database::getInstance();
+    $pdo = $db->getConnection();
 
-        try {
-            $pdo->beginTransaction();
+    try {
+        $pdo->beginTransaction();
 
-            // create debe devolver el id insertado (int) o false
-            $idIndicador = $this->indicadorModel->create($name, $anio, $idCorte, $idMateria);
+        // 1. Consultar la cantidad actual de indicadores para la misma materia y año.
+        $sqlCount = "SELECT COUNT(*) AS cantidad FROM indicadorl WHERE idMateria = :idMateria AND año = :anio";
+        $stmtCount = $pdo->prepare($sqlCount);
+        $stmtCount->execute([
+            ':idMateria' => $idMateria,
+            ':anio'      => $anio
+        ]);
+        $resultadoCount = $stmtCount->fetch(PDO::FETCH_ASSOC);
+        $cantidad = (int)$resultadoCount['cantidad'];
 
-            if (!$idIndicador || !is_numeric($idIndicador)) {
-                throw new Exception('No se obtuvo el ID del indicador. Revisa IndicadorL::create().');
-            }
+        // 2. Asignar el nuevo orden
+        $nuevoOrden = $cantidad + 1;
 
-            if (!empty($secciones)) {
-                foreach ($secciones as $idSeccion) {
-                    if (!$this->enlaceModel->create((int)$idIndicador, (int)$idSeccion)) {
-                        throw new Exception("No se pudo crear enlace para idIndicador={$idIndicador} idSeccion={$idSeccion}");
-                    }
+        // Crear el nuevo indicador con el orden asignado
+        $idIndicador = $this->indicadorModel->create($name, $anio, $idCorte, $idMateria, $nuevoOrden);
+
+        if (!$idIndicador || !is_numeric($idIndicador)) {
+            throw new Exception('No se obtuvo el ID del indicador. Revisa IndicadorL::create().');
+        }
+
+        if (!empty($secciones)) {
+            foreach ($secciones as $idSeccion) {
+                if (!$this->enlaceModel->create((int)$idIndicador, (int)$idSeccion)) {
+                    throw new Exception("No se pudo crear enlace para idIndicador={$idIndicador} idSeccion={$idSeccion}");
                 }
             }
-
-            $pdo->commit();
-            if (session_status() === PHP_SESSION_NONE) { session_start(); }
-            $_SESSION['status'] = 'success';
-            $_SESSION['action'] = 'add';
-            header("Location: getIndicadorDeLogroController.php?action=index");
-            exit;
-        } catch (Exception $e) {
-            if ($pdo->inTransaction()) $pdo->rollBack();
-            error_log("Indicador store error: " . $e->getMessage());
-
-            if (session_status() === PHP_SESSION_NONE) { session_start(); }
-            $_SESSION['status'] = 'error';
-            $_SESSION['action'] = 'add';
-            $_SESSION['error_message'] = "Error al guardar indicador: " . $e->getMessage();
-
-            header("Location: getIndicadorDeLogroController.php?action=index");
-            exit;
         }
+
+        $pdo->commit();
+        if (session_status() === PHP_SESSION_NONE) { session_start(); }
+        $_SESSION['status'] = 'success';
+        $_SESSION['action'] = 'add';
+        header("Location: getIndicadorDeLogroController.php?action=index");
+        exit;
+    } catch (Exception $e) {
+        if ($pdo->inTransaction()) $pdo->rollBack();
+        error_log("Indicador store error: " . $e->getMessage());
+
+        if (session_status() === PHP_SESSION_NONE) { session_start(); }
+        $_SESSION['status'] = 'error';
+        $_SESSION['action'] = 'add';
+        $_SESSION['error_message'] = "Error al guardar indicador: " . $e->getMessage();
+
+        header("Location: getIndicadorDeLogroController.php?action=index");
+        exit;
     }
+}
+
 
     // Editar indicador (con transacción)
     public function update($post) {

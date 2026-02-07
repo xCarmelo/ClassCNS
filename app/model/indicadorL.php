@@ -2,11 +2,6 @@
 require_once __DIR__ . '/Database.php';
 
 class IndicadorL {
-    public int $id;
-    public string $name;
-    public int $anio;     // usaremos variable 'anio' en PHP, en SQL la columna es `año`
-    public int $idCorte;
-    public int $idMateria;
 
     protected static $pdo;
     protected static $table = 'indicadorl';
@@ -16,115 +11,168 @@ class IndicadorL {
         self::$pdo = $db->getConnection();
     }
 
-    // obtener todos con nombre del corte y materia
-    public function getAll(): array {
-        $sql = "SELECT i.id, i.name, i.`año` AS anio, c.name AS corte, m.name AS materia, i.idCorte, i.idMateria
-                FROM `" . self::$table . "` i
-                LEFT JOIN corte c ON i.idCorte = c.id
-                LEFT JOIN materia m ON i.idMateria = m.id
-                ORDER BY i.id DESC";
-        $stmt = self::$pdo->query($sql);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    /* ======================================================
+       OBTENER TODOS (con filtros)
+    ====================================================== */
+public function getAllFiltered($anio = null, $idCorte = null, $idMateria = null, $idSeccion = null) {
+    $sql = "
+        SELECT 
+            ind.id,
+            ind.name,
+            ind.`año` AS anio,
+            ind.orden,
+            ind.idMateria,
+            ind.idCorte,
+            m.name AS materia,
+            c.name AS corte
+        FROM indicadorl ind
+        INNER JOIN materia m ON ind.idMateria = m.id
+        INNER JOIN corte c ON ind.idCorte = c.id
+        INNER JOIN enlace e ON e.idIndicador = ind.id
+        INNER JOIN seccion s ON s.id = e.idSeccion
+        WHERE 1 = 1
+    ";
+
+    $params = [];
+
+    if ($anio !== null) {
+        $sql .= " AND ind.`año` = :anio";
+        $params[':anio'] = $anio;
     }
 
-    // Obtener con filtros opcionales: año, corte, materia y sección
-    public function getAllFiltered(?int $anio = null, ?int $idCorte = null, ?int $idMateria = null, ?int $idSeccion = null): array {
-        $joins = [
-            "LEFT JOIN corte c ON i.idCorte = c.id",
-            "LEFT JOIN materia m ON i.idMateria = m.id"
-        ];
-        $wheres = [];
-        $params = [];
-
-        if ($anio !== null) {
-            $wheres[] = "i.`año` = :anio";
-            $params[':anio'] = $anio;
-        }
-        if ($idCorte !== null) {
-            $wheres[] = "i.idCorte = :idCorte";
-            $params[':idCorte'] = $idCorte;
-        }
-        if ($idMateria !== null) {
-            $wheres[] = "i.idMateria = :idMateria";
-            $params[':idMateria'] = $idMateria;
-        }
-        if ($idSeccion !== null) {
-            $joins[] = "INNER JOIN enlace e ON e.idIndicador = i.id AND e.idSeccion = :idSeccion";
-            $params[':idSeccion'] = $idSeccion;
-        }
-
-        $sql = "SELECT i.id, i.name, i.`año` AS anio, c.name AS corte, m.name AS materia, i.idCorte, i.idMateria
-                FROM `" . self::$table . "` i
-                " . implode("\n                ", $joins) . "
-                " . (!empty($wheres) ? ("WHERE " . implode(" AND ", $wheres)) : "") . "
-                ORDER BY i.id DESC";
-
-        $stmt = self::$pdo->prepare($sql);
-        $stmt->execute($params);
-        return $stmt->fetchAll(PDO::FETCH_ASSOC);
+    if ($idCorte !== null) {
+        $sql .= " AND ind.idCorte = :idCorte";
+        $params[':idCorte'] = $idCorte;
     }
 
-    # app/model/indicadorl.php
-public function getByFilters($idMateria, $anio, $idCorte) {
-    $sql = "SELECT * FROM indicadorl 
-            WHERE idMateria = :idMateria 
-                  AND `año` = :anio 
-              AND idCorte = :idCorte";
+    if ($idMateria !== null) {
+        $sql .= " AND ind.idMateria = :idMateria";
+        $params[':idMateria'] = $idMateria;
+    }
+
+    if ($idSeccion !== null) {
+        $sql .= " AND s.id = :idSeccion";
+        $params[':idSeccion'] = $idSeccion;
+    }
+
+    $sql .= " ORDER BY ind.orden ASC";
+
     $stmt = self::$pdo->prepare($sql);
-    $stmt->execute([
-        ':idMateria' => $idMateria,
-        ':anio'      => $anio,   // 👈 aunque la columna sea "año", el placeholder puede llamarse ":anio"
-        ':idCorte'   => $idCorte
-    ]);
+    $stmt->execute($params);
+
     return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
 
-
-    public function find(int $id): ?array {
-        $sql = "SELECT * FROM `" . self::$table . "` WHERE id = :id";
-        $stmt = self::$pdo->prepare($sql);
-        $stmt->execute([':id' => $id]);
-        $r = $stmt->fetch(PDO::FETCH_ASSOC);
-        return $r ?: null;
-    }
-
-    // Crear indicador — devuelve el id insertado (int) o false si falla
-public function create(string $name, int $anio, ?int $idCorte, ?int $idMateria) {
-    $sql = "INSERT INTO indicadorl (name, `año`, idMateria, idCorte)
-                VALUES (:name, :anio, :idMateria, :idCorte)";
+public function getAll() {
+    $sql = "SELECT * FROM indicadorl ORDER BY orden ASC";
     $stmt = self::$pdo->prepare($sql);
-    $ok = $stmt->execute([
-        ':name'      => $name,
-        ':anio'      => $anio,
-        ':idMateria' => $idMateria,
-        ':idCorte'   => $idCorte
-    ]);
-
-    if ($ok) {
-        return (int) self::$pdo->lastInsertId(); // Devuelve el ID autogenerado
-    }
-    error_log("IndicadorL::create error: " . json_encode($stmt->errorInfo()));
-    return false;
+    $stmt->execute();
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
 }
 
 
+public function getByFilters($idMateria, $anio, $idCorte) {
 
-    public function update(int $id, string $name, int $anio, ?int $idCorte = null, ?int $idMateria = null): bool {
-        $sql = "UPDATE `" . self::$table . "` SET name = :name, `año` = :anio, idCorte = :idCorte, idMateria = :idMateria WHERE id = :id";
+    $sql = "
+        SELECT *
+        FROM indicadorl
+        WHERE idMateria = :idMateria
+          AND anio = :anio
+          AND idCorte = :idCorte
+        ORDER BY orden ASC
+    ";
+
+    $stmt = self::$pdo->prepare($sql);
+    $stmt->bindParam(':idMateria', $idMateria, PDO::PARAM_INT);
+    $stmt->bindParam(':anio', $anio, PDO::PARAM_INT);
+    $stmt->bindParam(':idCorte', $idCorte, PDO::PARAM_INT);
+    $stmt->execute();
+
+    return $stmt->fetchAll(PDO::FETCH_ASSOC);
+}
+
+
+    /* ======================================================
+       OBTENER EL SIGUIENTE ORDEN DISPONIBLE
+    ====================================================== */
+    public function getNextOrdenByMateria($idMateria, $anio, $idCorte) {
+
+        $sql = "SELECT COALESCE(MAX(`orden`), 0) + 1
+                FROM indicadorl
+                WHERE idMateria = :idMateria
+                  AND `año` = :anio
+                  AND idCorte = :idCorte";
+
         $stmt = self::$pdo->prepare($sql);
-        return $stmt->execute([
-            ':name' => $name,
-            ':anio' => $anio,
-            ':idCorte' => $idCorte,
+        $stmt->execute([
             ':idMateria' => $idMateria,
-            ':id' => $id
+            ':anio'      => $anio,
+            ':idCorte'   => $idCorte
+        ]);
+
+        return (int)$stmt->fetchColumn();
+    }
+
+    /* ======================================================
+       CREAR INDICADOR (YA CON ORDEN)
+    ====================================================== */
+    public function create($name, $anio, $idCorte, $idMateria, $orden) {
+
+        $sql = "INSERT INTO indicadorl (name, `año`, idCorte, idMateria, `orden`)
+                VALUES (:name, :anio, :idCorte, :idMateria, :orden)";
+
+        $stmt = self::$pdo->prepare($sql);
+        $ok = $stmt->execute([
+            ':name'      => $name,
+            ':anio'      => $anio,
+            ':idCorte'   => $idCorte,
+            ':idMateria' => $idMateria,
+            ':orden'     => $orden
+        ]);
+
+        return $ok ? self::$pdo->lastInsertId() : false;
+    }
+
+    /* ======================================================
+       ACTUALIZAR INDICADOR
+    ====================================================== */
+    public function update($id, $name, $anio, $idCorte, $idMateria) {
+
+        $sql = "UPDATE indicadorl
+                SET name = :name,
+                    `año` = :anio,
+                    idCorte = :idCorte,
+                    idMateria = :idMateria
+                WHERE id = :id";
+
+        $stmt = self::$pdo->prepare($sql);
+
+        return $stmt->execute([
+            ':id'        => $id,
+            ':name'      => $name,
+            ':anio'      => $anio,
+            ':idCorte'   => $idCorte,
+            ':idMateria' => $idMateria
         ]);
     }
 
-    public function delete(int $id): bool {
-        $sql = "DELETE FROM `" . self::$table . "` WHERE id = :id";
+    /* ======================================================
+       ELIMINAR INDICADOR
+    ====================================================== */
+    public function delete($id) {
+        $sql = "DELETE FROM indicadorl WHERE id = ?";
         $stmt = self::$pdo->prepare($sql);
-        return $stmt->execute([':id' => $id]);
+        return $stmt->execute([$id]);
+    }
+
+    /* ======================================================
+       OBTENER POR ID
+    ====================================================== */
+    public function getById($id) {
+        $sql = "SELECT * FROM indicadorl WHERE id = ?";
+        $stmt = self::$pdo->prepare($sql);
+        $stmt->execute([$id]);
+        return $stmt->fetch(PDO::FETCH_ASSOC);
     }
 }

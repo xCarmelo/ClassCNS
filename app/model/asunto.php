@@ -32,6 +32,7 @@ public function getAllAsunto() {
                     a.id,
                     a.nota,
                     c.name as corte_name,
+                    c.id as idCorte,
                     a.tema,
                     a.fecha,
                     a.statuss,

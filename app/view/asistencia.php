@@ -143,13 +143,14 @@
     </form>
 
     <!-- Botón Nueva Asistencia (deshabilitado si faltan filtros) -->
-    <button 
+        <a href="#"
+        class="btn btn-success disabled"
         id="btnNuevaAsistencia"
-        class="btn btn-success mb-3"
-        onclick="location.href='nuevaAsistenciaController.php?seccion=<?= urlencode($_GET['seccion'] ?? '') ?>&corte=<?= urlencode($_GET['corte'] ?? '') ?>&materia=<?= urlencode($_GET['materia'] ?? '') ?>'"
-        <?= !$filtrosCompletos ? 'disabled' : '' ?>>
-        Nueva Asistencia
-    </button>
+        aria-disabled="true">
+            <i class="bi bi-plus-circle"></i> Nueva asistencia
+        </a>
+
+
 
         <div class="d-flex justify-content-between align-items-center mt-3">
         <div>
@@ -286,60 +287,136 @@
 </style>
 
 <script>
-// Guardar y restaurar filtros con localStorage
+// ===============================
+// CONFIG
+// ===============================
 const keyPrefix = 'asistencia_';
-const seccionEl = document.getElementById('filtroSeccion');
-const corteEl = document.getElementById('filtroCorte');
-const materiaEl = document.getElementById('filtroMateria');
-const btnNueva = document.getElementById('btnNuevaAsistencia');
+const autoLoadKey = 'asistencia_autoloaded';
 
+const seccionEl = document.getElementById('filtroSeccion');
+const corteEl   = document.getElementById('filtroCorte');
+const materiaEl = document.getElementById('filtroMateria');
+const btnNueva  = document.getElementById('btnNuevaAsistencia');
+const form      = document.getElementById('filtroForm');
+
+// ===============================
+// GUARDAR FILTROS
+// ===============================
 function saveFiltersToStorage() {
-    localStorage.setItem(keyPrefix + 'seccion', seccionEl.value || '');
-    localStorage.setItem(keyPrefix + 'corte', corteEl.value || '');
-    localStorage.setItem(keyPrefix + 'materia', materiaEl.value || '');
+    if (seccionEl) localStorage.setItem(keyPrefix + 'seccion', seccionEl.value || '');
+    if (corteEl)   localStorage.setItem(keyPrefix + 'corte', corteEl.value || '');
+    if (materiaEl) localStorage.setItem(keyPrefix + 'materia', materiaEl.value || '');
 }
 
+// ===============================
+// RESTAURAR FILTROS
+// ===============================
 function restoreFiltersFromStorage() {
+    let restored = false;
+
     const s = localStorage.getItem(keyPrefix + 'seccion') || '';
     const c = localStorage.getItem(keyPrefix + 'corte') || '';
     const m = localStorage.getItem(keyPrefix + 'materia') || '';
-    let shouldSubmit = false;
-    if (s && seccionEl && !seccionEl.value) { seccionEl.value = s; shouldSubmit = true; }
-    if (c && corteEl && !corteEl.value) { corteEl.value = c; shouldSubmit = true; }
-    if (m && materiaEl && !materiaEl.value) { materiaEl.value = m; shouldSubmit = true; }
-    if (shouldSubmit) document.getElementById('filtroForm').submit();
+
+    if (s && seccionEl && !seccionEl.value) {
+        seccionEl.value = s;
+        restored = true;
+    }
+    if (c && corteEl && !corteEl.value) {
+        corteEl.value = c;
+        restored = true;
+    }
+    if (m && materiaEl && !materiaEl.value) {
+        materiaEl.value = m;
+        restored = true;
+    }
+
+    return restored;
 }
 
-// Validar botón según filtros
+
+// ===============================
+// VALIDAR BOTÓN
+// ===============================
 function validarBotonNuevaAsistencia() {
-    if (seccionEl.value && corteEl.value && materiaEl.value) {
-        btnNueva.disabled = false;
+    if (!btnNueva) return;
+
+    const completo = seccionEl?.value && corteEl?.value && materiaEl?.value;
+
+    if (completo) {
+        btnNueva.classList.remove('disabled');
+        btnNueva.removeAttribute('aria-disabled');
+
+        const params = new URLSearchParams({
+            seccion: seccionEl.value,
+            corte: corteEl.value,
+            materia: materiaEl.value
+        });
+
+        // Obtener nombres de sección y materia para pasarlos como parámetros
+        const nombreSeccion = seccionEl.options[seccionEl.selectedIndex].text;
+        const nombreMateria = materiaEl.options[materiaEl.selectedIndex].text;
+        
+        params.append('nombre_seccion', nombreSeccion);
+        params.append('nombre_materia', nombreMateria);
+
+        // Usar el controlador, no la vista directamente
+        btnNueva.href = '/app/controller/nuevaAsistenciaController.php?' + params.toString();
+
     } else {
-        btnNueva.disabled = true;
+        btnNueva.classList.add('disabled');
+        btnNueva.setAttribute('aria-disabled', 'true');
+        btnNueva.href = '#';
     }
 }
 
-window.addEventListener('DOMContentLoaded', () => {
-    restoreFiltersFromStorage();
-    validarBotonNuevaAsistencia();
+btnNueva.addEventListener('click', function (e) {
+    if (btnNueva.classList.contains('disabled')) {
+        e.preventDefault();
+    }
 });
 
-// Envío automático del formulario al cambiar cualquier filtro y guardar
+
+// ===============================
+// restaorar filtros en localstorague
+// ===============================
+window.addEventListener('DOMContentLoaded', () => {
+    const restored = restoreFiltersFromStorage();
+    validarBotonNuevaAsistencia();
+
+    const url = new URL(window.location.href);
+    const tieneFiltrosEnURL =
+        url.searchParams.get('seccion') &&
+        url.searchParams.get('corte') &&
+        url.searchParams.get('materia');
+
+    if (restored && !tieneFiltrosEnURL && !sessionStorage.getItem(autoLoadKey)) {
+        sessionStorage.setItem(autoLoadKey, '1');
+        form.submit();
+    }
+});
+
+
+
+// ===============================
+// CAMBIO DE FILTROS
+// ===============================
 const filtros = document.querySelectorAll('.filtro-auto');
 filtros.forEach(filtro => {
     filtro.addEventListener('change', function() {
         saveFiltersToStorage();
         validarBotonNuevaAsistencia();
-        document.getElementById('filtroForm').submit();
+        form.submit();
     });
 });
 
-// Paginación
+// ===============================
+// PAGINACIÓN
+// ===============================
 const storageRowsKey = keyPrefix + 'rowsPerPage';
 let rowsPerPage = parseInt(localStorage.getItem(storageRowsKey) || '10', 10) || 10;
 let currentPage = 1;
 
-// Inicializar selector de filas
 const selectRowsPerPage = document.getElementById('selectRowsPerPage');
 if (selectRowsPerPage) {
     selectRowsPerPage.value = String(rowsPerPage);
@@ -353,6 +430,8 @@ if (selectRowsPerPage) {
 
 function aplicarPaginacion() {
     const tabla = document.getElementById('tablaAsistencia');
+    if (!tabla) return;
+
     const tbody = tabla.querySelector('tbody');
     const rows = Array.from(tbody.querySelectorAll('tr'));
     const paginacion = document.getElementById('paginacionAsistencia');
@@ -385,14 +464,17 @@ function aplicarPaginacion() {
 
 window.addEventListener('DOMContentLoaded', aplicarPaginacion);
 
-// Eliminar sesión de asistencia (modal de confirmación)
+// ===============================
+// ELIMINAR SESIÓN
+// ===============================
 document.addEventListener('click', function(e){
     const btn = e.target.closest('.btn-eliminar-sesion');
     if (!btn) return;
+
     const th = btn.closest('.th-sesion');
     const idSesion = th?.dataset.idSesion;
     if (!idSesion) return;
-    // Crear modal si no existe
+
     let modal = document.getElementById('modalEliminarSesion');
     if (!modal) {
         const html = `
@@ -420,8 +502,9 @@ document.addEventListener('click', function(e){
         document.body.insertAdjacentHTML('beforeend', html);
         modal = document.getElementById('modalEliminarSesion');
     }
+
     document.getElementById('inputIdSesion').value = idSesion;
-    const bsModal = new bootstrap.Modal(modal);
-    bsModal.show();
+    new bootstrap.Modal(modal).show();
 });
 </script>
+

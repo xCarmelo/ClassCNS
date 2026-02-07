@@ -9,6 +9,15 @@ if ($_SERVER['REQUEST_METHOD'] === 'POST') {
     $student->idSeccion = $_POST['idSeccion'] ?? null;
     $student->NumerodeLista = $_POST['NumerodeLista'] ?? null;
 
+    $fin = isset($_POST['fin']) ? 1 : 0;
+
+if ($fin === 1) {
+    $student->resetFinBySeccion($student->idSeccion);
+}
+
+$student->fin = $fin;
+
+
     $exito = $student->updateStudent();
 
     $_SESSION['status'] = $exito ? 'success' : 'error';

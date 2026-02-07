@@ -121,10 +121,16 @@ if (isset($_SESSION['status'])):
                 }
 
                 // Restaurar si no hay query params presentes
-                const params = new URLSearchParams(window.location.search);
+               const params = new URLSearchParams(window.location.search);
                 const hasAnyParam = ['corte','materia','seccion','anio'].some(p => params.has(p));
+
+                // AGREGAMOS ESTA CONSTANTE
+                const modalActivo = document.getElementById('modalResultadoIndicador');
+
                 let shouldSubmitAfterRestore = false;
-                if (!hasAnyParam) {
+
+                // MODIFICAMOS ESTA CONDICIÓN (añadimos && !modalActivo)
+                if (!hasAnyParam && !modalActivo) {
                     ['corte','materia','seccion','anio'].forEach(k => {
                         const v = getFromStorage(k);
                         if (v && controls[k] && !controls[k].value) {
@@ -145,7 +151,7 @@ if (isset($_SESSION['status'])):
                     const debounced = () => { clearTimeout(t); t = setTimeout(autoSubmit, 500); };
                     anio.addEventListener('input', debounced);
                     anio.addEventListener('change', autoSubmit);
-                    anio.addEventListener('blur', debounced);
+                    anio.addEventListener('blur', debounced); 
                 }
             });
         </script>
@@ -379,7 +385,13 @@ if (isset($_SESSION['status'])):
 // Mostrar modal de resultado si existe (servidor)
 document.addEventListener('DOMContentLoaded', function(){
     const modalEl = document.getElementById('modalResultadoIndicador');
-    if (modalEl) new bootstrap.Modal(modalEl).show();
+    if (modalEl) {
+        const modal = new bootstrap.Modal(modalEl, {
+            backdrop: 'static',
+            keyboard: false
+        });
+        modal.show();
+    }
 });
 
 document.addEventListener('DOMContentLoaded', function () {
@@ -490,7 +502,11 @@ function showClientResultModal(title, message, variant = 'primary') {
     bodyEl.textContent = message || '';
     // set header color
     headerEl.className = 'modal-header bg-' + (variant === 'danger' ? 'danger text-white' : variant === 'success' ? 'success text-white' : 'primary text-white');
-    new bootstrap.Modal(modalEl).show();
+    const modal = new bootstrap.Modal(modalEl, {
+        backdrop: 'static',
+        keyboard: false
+    });
+    modal.show();
 }
 </script>
 
@@ -594,4 +610,17 @@ document.addEventListener('DOMContentLoaded', function(){
         });
     });
 });
+
+document.addEventListener('DOMContentLoaded', function() {
+    const modalAddIndicador = document.getElementById('modalAddIndicador');
+    if (modalAddIndicador) {
+        modalAddIndicador.addEventListener('show.bs.modal', function() {
+            const añoInput = this.querySelector('input[name="anio"]');
+            if (añoInput) {
+                añoInput.value = new Date().getFullYear();
+            }
+        });
+    }
+});
 </script>
+

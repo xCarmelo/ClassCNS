@@ -77,11 +77,14 @@ class Seccion {
         return false;
     }
 
-    public function getAll(): array {
+public function getAll(): array {
+    if($this->status === 1){
         $sql = "SELECT * FROM `" . self::$table . "` ORDER BY name ASC";
         $stmt = self::$pdo->query($sql);
         return $stmt->fetchAll(PDO::FETCH_ASSOC);
     }
+    return [];
+}
 
     public function find(int $id): ?array {
         $sql = "SELECT * FROM `" . self::$table . "` WHERE id = :id";

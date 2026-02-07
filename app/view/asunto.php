@@ -471,43 +471,56 @@ document.getElementById('btnExportarAsuntos').addEventListener('click', function
     }
   }
 
-  function filtrarAsuntos() {
-    const nombre = document.getElementById('buscador').value.toLowerCase();
-    const materia = document.getElementById('filtroMateria').value.toLowerCase();
-    const status = document.getElementById('filtroStatus').value;
-    const fechaInicio = document.getElementById('filtroFechaInicio').value;
-    const fechaFin = document.getElementById('filtroFechaFin').value;
-    const seccion = document.getElementById('filtroSeccionAsunto').value.toLowerCase();
-    const corte = document.getElementById('filtroCorte').value;
 
-    document.querySelectorAll('#tablaAsuntos tbody tr').forEach(tr => {
-      const estudiante = tr.dataset.estudiante;
-      const mat = tr.dataset.materia;
-      const stat = tr.dataset.status;
-      const fecha = tr.dataset.fecha;
-      const secc = tr.dataset.seccion; 
 
-      let visible = true;
-      if (nombre && !estudiante.includes(nombre)) visible = false;
-      if (materia && mat !== materia) visible = false;
-      if (status !== '' && stat !== status) visible = false;
-      if (seccion && secc !== seccion) visible = false;
-      if (fechaInicio && new Date(fecha) < new Date(fechaInicio)) visible = false;
-      if (fechaFin && new Date(fecha) > new Date(fechaFin)) visible = false;
-      // Ajustar comparación para manejar valores vacíos y no numéricos
-      if (corte && (!tr.dataset.corte || isNaN(tr.dataset.corte) || parseInt(tr.dataset.corte) !== parseInt(corte))) visible = false;
+function filtrarAsuntos() {
+  const nombre = document.getElementById('buscador').value.toLowerCase();
+  const materia = document.getElementById('filtroMateria').value.toLowerCase();
+  const status = document.getElementById('filtroStatus').value;
+  const fechaInicio = document.getElementById('filtroFechaInicio').value;
+  const fechaFin = document.getElementById('filtroFechaFin').value;
+  const seccion = document.getElementById('filtroSeccionAsunto').value.toLowerCase();
+  const corte = document.getElementById('filtroCorte').value;
 
-      tr.dataset.visible = visible ? "true" : "false";
-    });
+  document.querySelectorAll('#tablaAsuntos tbody tr').forEach(tr => {
+    const estudiante = tr.dataset.estudiante || '';
+    const mat = tr.dataset.materia || '';
+    const stat = tr.dataset.status || '';
+    const fecha = tr.dataset.fecha || '';
+    const secc = tr.dataset.seccion || '';
+    const corteFila = tr.dataset.corte || '';  // DEFINIDO DENTRO DEL forEach
 
-    currentPage = 1;
-    paginarTabla();
-  }
+    let visible = true;
+    if (nombre && !estudiante.toLowerCase().includes(nombre)) visible = false;
+    if (materia && mat !== materia) visible = false;
+    if (status !== '' && stat !== status) visible = false;
+    if (seccion && secc !== seccion) visible = false;
+    if (fechaInicio && new Date(fecha) < new Date(fechaInicio)) visible = false;
+    if (fechaFin && new Date(fecha) > new Date(fechaFin)) visible = false;
+    
+    // Filtro por corte - comparación directa de strings
+    if (corte && corteFila !== corte) {
+      visible = false;
+    }
+
+    tr.dataset.visible = visible ? "true" : "false";
+  });
+
+  currentPage = 1;
+  
+  paginarTabla();
+}
+
+
+
 
   // Asignar eventos a los filtros
-  ['buscador', 'filtroMateria', 'filtroStatus', 'filtroFechaInicio', 'filtroFechaFin', 'filtroSeccionAsunto'].forEach(id => {
-    document.getElementById(id).addEventListener('input', filtrarAsuntos);
-  });
+// Usamos 'change' para los select y 'input' para texto
+['buscador', 'filtroMateria', 'filtroStatus', 'filtroFechaInicio', 'filtroFechaFin', 'filtroSeccionAsunto', 'filtroCorte'].forEach(id => {
+    const el = document.getElementById(id);
+    const eventType = el.tagName === 'SELECT' ? 'change' : 'input';
+    el.addEventListener(eventType, filtrarAsuntos);
+});
 
   // Inicializar al cargar
   window.addEventListener('DOMContentLoaded', () => {
@@ -552,4 +565,5 @@ window.addEventListener('DOMContentLoaded', () => {
 });
 
 </script>
+
 

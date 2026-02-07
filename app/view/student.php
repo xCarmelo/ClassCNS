@@ -2,7 +2,7 @@
 
 <style>
     .pagination-container {
-        overflow-x: auto;
+        overflow-x: auto; 
         white-space: nowrap;
     }
 
@@ -19,6 +19,14 @@
             <button class="btn btn-primary" data-bs-toggle="modal" data-bs-target="#modalAgregar">
                 + Nuevo Estudiante
             </button>
+
+            <button id="btn-reset-lista"
+                    class="btn btn-warning d-none"
+                    data-bs-toggle="modal"
+                    data-bs-target="#modalConfirmarReset">
+                🔄 Resetear número de lista
+            </button>
+
         </div> 
     </div>
 
@@ -66,7 +74,11 @@
                 <tbody>
                     <?php if (!empty($students)): ?>
                         <?php foreach ($students as $index => $student): ?>
-                            <tr data-seccion="<?= (int)$student['idSeccion'] ?>">
+                            <tr 
+                                data-seccion="<?= (int)$student['idSeccion'] ?>"
+                                class="<?= (isset($student['fin']) && $student['fin'] == 1) ? 'table-danger' : '' ?>"
+                              >
+
                                 <td><?= $student["NumerodeLista"] ?></td>
                                 <td class="nombre"><?= htmlspecialchars($student['name']) ?></td>
                                 <td><?= htmlspecialchars($student['seccion_name']) ?></td>
@@ -122,6 +134,16 @@
       <div class="modal-body">
         <!-- FORMULARIO INDIVIDUAL -->
         <form method="POST" action="/app/controller/addStudentController.php" id="formAgregarIndividual">
+          <!-- MOVER idSeccion AQUÍ DENTRO -->
+          <div class="mb-3">
+            <label for="idSeccion" class="form-label">Sección:</label>
+            <select name="idSeccion" id="idSeccion" class="form-select" required>
+                <?php foreach ($secciones as $s): ?>
+                    <option value="<?= $s['id'] ?>"><?= htmlspecialchars($s['name']) ?></option>
+                <?php endforeach; ?>
+            </select>
+          </div>
+
           <div class="mb-3">
             <label for="name" class="form-label">Nombre:</label>
             <input type="text" class="form-control" id="name" name="name" required>
@@ -129,21 +151,22 @@
 
           <div class="mb-3">
             <label for="numero-lista-add" class="form-label">Número de lista:</label>
-            <input type="number" class="form-control" id="numero-lista-add" name="NumerodeLista" min="1" required>
+            <input 
+                type="number"
+                class="form-control"
+                id="numero-lista-add"
+                name="NumerodeLista"
+                min="1"
+                required
+            >
             <div class="form-text">No puede repetirse en la misma sección.</div>
           </div>
 
-          <div class="mb-3">
-            <label for="idSeccion" class="form-label">Sección:</label>
-            <select class="form-select" id="idSeccion" name="idSeccion" required>
-              <option value="">Seleccione una sección</option>
-              <?php
-              $stmt = Student::$pdo->query("SELECT * FROM seccion");
-              while ($seccion = $stmt->fetch(PDO::FETCH_ASSOC)) {
-                echo "<option value=\"{$seccion['id']}\">{$seccion['name']}</option>";
-              }
-              ?>
-            </select>
+          <div class="form-check mb-3">
+              <input class="form-check-input" type="checkbox" id="fin-add" name="fin" value="1">
+              <label class="form-check-label" for="fin-add">
+                  Definir como división de la lista 
+              </label>
           </div>
 
           <div class="d-grid">
@@ -167,8 +190,14 @@
           </div>
 
           <div class="form-text mt-2">
-            El archivo debe contener columnas con los encabezados <strong>nombre</strong>, <strong>seccion</strong>, <strong>NumerodeLista</strong>, <strong>status</strong>, <strong>idCorte</strong> y <strong>fin</strong>.
-          </div>
+    El archivo debe contener las siguientes columnas:
+    <ul class="mb-1">
+        <li><strong>Nombre</strong> (requerido) - Nombre del estudiante</li>
+        <li><strong>Sección</strong> (requerido) - Nombre de la sección (debe existir en el sistema, "1ro A"...)</li>
+        <li><strong>Numero de lista</strong> (requerido) - Número entero positivo</li>
+        <li><strong>División de la lista</strong> (opciona) escriba 1 para marcar la división
+    </ul>
+</div>
         </form>
       </div>
 
@@ -212,6 +241,19 @@ if (isset($_SESSION['status']) && isset($_SESSION['action'])):
 
     $bg    = $config[$status]['bg']; 
     $title = $config[$status]['title'];
+
+    // Array de mensajes actualizado con 'reset'
+    $mensajes = [
+        'add' => ['Estudiante agregado', 'El estudiante ha sido registrado correctamente.'],
+        'edit' => ['Estudiante actualizado', 'El estudiante ha sido actualizado correctamente.'],
+        'delete' => ['Estudiante eliminado', 'El estudiante ha sido eliminado.'],
+        'restore' => ['Estudiante restaurado', 'El estudiante ha sido restaurado.'],
+        'reset' => ['Números reordenados', 'Los números de lista han sido reordenados correctamente.'], // Agregado para reset
+        'error' => ['Error', 'Ocurrió un problema. Inténtalo de nuevo.']
+    ];
+
+    $titulo = $mensajes[$action][0] ?? $mensajes['error'][0];
+    $mensaje = $mensajes[$action][1] ?? $mensajes['error'][1];
 ?>
 <div class="modal fade" id="modalResultado" tabindex="-1" aria-hidden="true">
   <div class="modal-dialog modal-dialog-centered modal-lg">
@@ -291,6 +333,14 @@ if (isset($_SESSION['status']) && isset($_SESSION['action'])):
         </div>
       </div>
 
+      <div class="form-check mb-3">
+          <input class="form-check-input" type="checkbox" id="fin-edit" name="fin" value="1">
+          <label class="form-check-label" for="fin-edit">
+              Definir como división de la lista 
+          </label>
+      </div>
+
+
       <div class="modal-footer">
         <button type="submit" class="btn btn-success">Actualizar</button>
         <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button> 
@@ -360,50 +410,288 @@ if (isset($_SESSION['status']) && isset($_SESSION['action'])):
 </div>
 
 
+<!-- Modal de confrimacion para reseteo de numero de lista -->
+ <div class="modal fade" id="modalConfirmarReset" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header bg-warning">
+        <h5 class="modal-title">⚠ Confirmar operación</h5>
+        <button class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+
+      <div class="modal-body">
+        <p>
+          Esta acción <strong>reordenará los números de lista</strong> de todos los
+          estudiantes de la sección seleccionada.
+        </p>
+        <p class="text-danger mb-0">
+          ¿Deseas continuar?
+        </p>
+      </div>
+
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button class="btn btn-danger" id="btnConfirmarReset">
+          Sí, resetear
+        </button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Modal de resultado  sobre formateo de numero de lista -->
+<div class="modal fade" id="modalResultadoReset" tabindex="-1">
+  <div class="modal-dialog modal-dialog-centered">
+    <div class="modal-content">
+      <div class="modal-header">
+        <h5 class="modal-title" id="resetResultadoTitulo"></h5>
+        <button class="btn-close" data-bs-dismiss="modal"></button>
+      </div>
+      <div class="modal-body" id="resetResultadoMensaje"></div>
+      <div class="modal-footer">
+        <button class="btn btn-secondary" data-bs-dismiss="modal">Cerrar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+
+
 <?php require_once "../view/footer.php";?><!-- cierre de header y link de js-->
 
 <script>
-  // Mostrar modal de resultado si existe
+//escrip para el reformateo de numero de lista
+document.addEventListener('DOMContentLoaded', () => {
+    // Selectores principales
+    const filtroSeccion = document.getElementById('filtroSeccion');
+    const btnReset = document.getElementById('btn-reset-lista');
+    const btnConfirmarReset = document.getElementById('btnConfirmarReset');
+    const keyPrefix = 'estudiantes_'; // Prefijo que usas en el resto de tu código
+
+    /**
+     * FUNCIÓN: Controla la visibilidad del botón de reseteo
+     */
+    function toggleResetButton() {
+        if (!btnReset || !filtroSeccion) return;
+
+        const idSeccion = filtroSeccion.value;
+
+        if (idSeccion && idSeccion !== '') {
+            btnReset.classList.remove('d-none');
+            // Guardamos el ID en el botón para saber qué sección resetear
+            btnReset.setAttribute('data-id-seccion', idSeccion);
+        } else {
+            btnReset.classList.add('d-none');
+            btnReset.removeAttribute('data-id-seccion');
+        }
+    }
+
+    /**
+     * INICIALIZACIÓN: Al cargar la página
+     */
+    // Restaurar valor desde localStorage si existe (usando tu lógica de prefijos)
+    const seccionGuardada = localStorage.getItem(keyPrefix + 'seccion');
+    if (seccionGuardada && filtroSeccion) {
+        filtroSeccion.value = seccionGuardada;
+    }
+
+    // Verificar visibilidad inicial
+    toggleResetButton();
+
+    /**
+     * EVENTO: Cambio en el selector de sección
+     */
+    if (filtroSeccion) {
+        filtroSeccion.addEventListener('change', () => {
+            // La función filtrarYPaginar ya guarda en localStorage, 
+            // solo nos encargamos de mostrar/ocultar el botón.
+            toggleResetButton();
+        });
+    }
+
+    /**
+     * EVENTO: Ejecución del reseteo (Botón dentro del Modal de Confirmación)
+     */
+    if (btnConfirmarReset) {
+        btnConfirmarReset.addEventListener('click', function() {
+            const idSeccion = btnReset.getAttribute('data-id-seccion');
+            
+            if (!idSeccion) {
+                alert("Error: No se ha detectado una sección seleccionada.");
+                return;
+            }
+
+            // Deshabilitar botón para evitar doble clic
+            this.disabled = true;
+            this.innerHTML = `<span class="spinner-border spinner-border-sm"></span> Procesando...`;
+
+            fetch(`../controller/getStudentController.php?action=resetNumeroLista&idSeccion=${idSeccion}`)
+    .then(response => response.json())
+    .then(data => {
+
+        const titulo = document.getElementById('resetResultadoTitulo');
+        const mensaje = document.getElementById('resetResultadoMensaje');
+
+        if (data.status === 'success') {
+            titulo.textContent = '✅ Operación exitosa';
+            mensaje.innerHTML = `
+                <div class="alert alert-success">
+                    Los números de lista fueron reorganizados correctamente.
+                </div>
+            `;
+
+            const modal = new bootstrap.Modal(
+                document.getElementById('modalResultadoReset')
+            );
+            modal.show();
+
+            // Recargar después de cerrar el modal
+            document
+              .getElementById('modalResultadoReset')
+              .addEventListener('hidden.bs.modal', () => {
+                  window.location.reload();
+              });
+
+        } else {
+            titulo.textContent = '❌ Error';
+            mensaje.innerHTML = `
+                <div class="alert alert-danger">
+                    ${data.message || 'Error desconocido'}
+                </div>
+            `;
+            new bootstrap.Modal(
+                document.getElementById('modalResultadoReset')
+            ).show();
+
+            this.disabled = false;
+            this.textContent = 'Sí, resetear';
+        }
+    })
+    .catch(error => {
+        alert('❌ Error de conexión con el servidor.');
+        this.disabled = false;
+        this.textContent = 'Sí, resetear';
+    });
+        });
+    }
+});
+
+
+
+//para obtener el numero de lista por defecto
+// para obtener el numero de lista por defecto
+document.addEventListener('DOMContentLoaded', function () {
+    const seccionSelect = document.getElementById('idSeccion');
+    const numeroInput = document.getElementById('numero-lista-add');
+
+    if (!seccionSelect || !numeroInput) return;
+
+    seccionSelect.addEventListener('change', function () {
+        const idSeccion = this.value;
+
+        if (!idSeccion) {
+            numeroInput.value = '';
+            return;
+        }
+
+        // Hacer la petición AJAX al controlador
+        fetch(`../controller/getStudentController.php?action=nextNumeroLista&idSeccion=${idSeccion}`)
+            .then(response => {
+                if (!response.ok) {
+                    throw new Error('Error en la petición');
+                }
+                return response.json();
+            })
+            .then(data => {
+                if (data.next !== undefined) {
+                    numeroInput.value = data.next;
+                } else if (data.error) {
+                    console.error('Error del servidor:', data.error);
+                    numeroInput.value = '';
+                }
+            })
+            .catch(error => {
+                console.error('Error al obtener el número de lista:', error);
+                numeroInput.value = '';
+            });
+    });
+
+    // Si al cargar ya hay una sección seleccionada, obtener su número
+    if (seccionSelect.value) {
+        seccionSelect.dispatchEvent(new Event('change'));
+    }
+});
+
+
+
+
+  // Mostrar modal de resultado si existe (reseteo de numero de lista)
+document.addEventListener('DOMContentLoaded', function () {
   const modalEl = document.getElementById('modalResultado');
   if (modalEl) {
-    const modal = new bootstrap.Modal(modalEl);
+    const modal = new bootstrap.Modal(modalEl, {
+      backdrop: 'static',
+      keyboard: false
+    });
     modal.show();
+  }
+});
+
+
+  // Prefijo para localStorage (evita conflictos con otras páginas)
+  const keyPrefix = 'estudiantes_';
+
+  // Función para guardar filtros en localStorage
+  function saveFiltersToStorage() {
+    localStorage.setItem(keyPrefix + 'seccion', document.getElementById('filtroSeccion').value || '');
+    localStorage.setItem(keyPrefix + 'buscador', document.getElementById('buscador').value || '');
+    localStorage.setItem(keyPrefix + 'estado', document.getElementById('filtroEstado').value || '');
+  }
+
+  // Función para restaurar filtros desde localStorage
+  function restoreFiltersFromStorage() {
+    const seccion = localStorage.getItem(keyPrefix + 'seccion') || '';
+    const buscador = localStorage.getItem(keyPrefix + 'buscador') || '';
+    const estado = localStorage.getItem(keyPrefix + 'estado') || '1'; // Por defecto Activos
+
+    if (seccion) document.getElementById('filtroSeccion').value = seccion;
+    if (buscador) document.getElementById('buscador').value = buscador;
+    if (estado) document.getElementById('filtroEstado').value = estado;
   }
 
   const rowsPerPage = 10;
   let currentPage = 1;
 
-function filtrarYPaginar() {
-  const filtroSeccion = (document.getElementById('filtroSeccion').value || '').trim();
-  const filtroCorte = '';
-  const filtroEstado = document.getElementById('filtroEstado').value;
-  const buscador = document.getElementById('buscador').value.toLowerCase();
+  function filtrarYPaginar() {
+    const filtroSeccion = (document.getElementById('filtroSeccion').value || '').trim();
+    const filtroCorte = '';
+    const buscador = document.getElementById('buscador').value.toLowerCase();
 
-  const rows = Array.from(document.querySelectorAll('#tablaEstudiantes tbody tr'));
-  let visibles = [];
+    const rows = Array.from(document.querySelectorAll('#tablaEstudiantes tbody tr'));
+    let visibles = [];
 
-  rows.forEach(row => {
-    const seccion = (row.dataset.seccion || '').trim();
-  const corte = '';
-    const nombre = (row.querySelector('.nombre')?.textContent || '').toLowerCase();
+    rows.forEach(row => {
+      const seccion = (row.dataset.seccion || '').trim();
+      const corte = '';
+      const nombre = (row.querySelector('.nombre')?.textContent || '').toLowerCase();
 
-  const coincideSeccion = !filtroSeccion || seccion === filtroSeccion;
-    const coincideCorte = !filtroCorte || corte === filtroCorte;
-  const coincideNombre = nombre.includes(buscador);
-  const estadoCelda = row.querySelector('td:nth-child(4)')?.textContent.trim() || 'Activo';
-  const coincideEstado = (filtroEstado === '1' && estadoCelda === 'Activo') || (filtroEstado === '0' && estadoCelda === 'Eliminado');
+      const coincideSeccion = !filtroSeccion || seccion === filtroSeccion;
+      const coincideCorte = !filtroCorte || corte === filtroCorte;
+      const coincideNombre = nombre.includes(buscador);
+      const estadoCelda = row.querySelector('td:nth-child(4)')?.textContent.trim() || 'Activo';
+      const filtroEstado = document.getElementById('filtroEstado').value;
+      const coincideEstado = (filtroEstado === '1' && estadoCelda === 'Activo') || (filtroEstado === '0' && estadoCelda === 'Eliminado');
 
-  if (coincideSeccion && coincideCorte && coincideNombre && coincideEstado) {
-      row.dataset.visible = "true";
-      visibles.push(row);
-    } else {
-      row.dataset.visible = "false";
-    }
-  });
+      if (coincideSeccion && coincideCorte && coincideNombre && coincideEstado) {
+        row.dataset.visible = "true";
+        visibles.push(row);
+      } else {
+        row.dataset.visible = "false";
+      }
+    });
 
-  aplicarPaginacion(visibles);
-}
-
+    aplicarPaginacion(visibles);
+  }
 
   function aplicarPaginacion(rows) {
     const paginacion = document.getElementById('paginacionEstudiantes');
@@ -433,60 +721,57 @@ function filtrarYPaginar() {
     }
   }
 
+  // Event listeners con guardado en localStorage
   document.getElementById('filtroSeccion').addEventListener('change', () => {
+    saveFiltersToStorage();
     currentPage = 1;
     filtrarYPaginar();
   });
 
   document.getElementById('buscador').addEventListener('input', () => {
+    saveFiltersToStorage();
     currentPage = 1;
     filtrarYPaginar();
   });
 
   document.getElementById('filtroEstado').addEventListener('change', () => {
+    saveFiltersToStorage();
     const url = new URL(window.location.href);
     url.searchParams.set('status', document.getElementById('filtroEstado').value);
-    // Recarga para que el backend traiga Activos/Eliminados según corresponda
     window.location.href = url.toString();
   });
 
-  
-
-
   // Ejecutar al cargar
   window.addEventListener('DOMContentLoaded', () => {
+    restoreFiltersFromStorage();
     filtrarYPaginar();
   });
 
-// Manejo de edición de estudiantes
-document.querySelectorAll('.btn-editar').forEach(btn => {
-  btn.addEventListener('click', function () {
-    const studentId = this.getAttribute('data-id');
-    fetch(`/app/controller/getByIdStudentController.php?id=${studentId}`) 
-      .then(response => response.json())
-      .then(data => {
-  if (data.success) {
-          const student = data.student;
-          document.getElementById('edit-id').value = student.id;
-          document.getElementById('edit-name').value = student.name;
-          document.getElementById('edit-idSeccion').value = student.idSeccion;
-
-          // 🆕 Mostrar número de lista actual en el modal
-          document.getElementById('edit-numero-lista').value = student.NumerodeLista ?? '';
-
-          const modal = new bootstrap.Modal(document.getElementById('modalEditar'));
-          modal.show();
-        } else {
-          showToast('No se pudo obtener la información del estudiante.');
-        }
-      })
-      .catch(error => {
-        console.error('Error:', error);
-        showToast('Ocurrió un error al intentar obtener los datos del estudiante.');
-      });
+  // Manejo de edición de estudiantes
+  document.querySelectorAll('.btn-editar').forEach(btn => {
+    btn.addEventListener('click', function () {
+      const studentId = this.getAttribute('data-id');
+      fetch(`/app/controller/getByIdStudentController.php?id=${studentId}`) 
+        .then(response => response.json())
+        .then(data => {
+          if (data.success) {
+            const student = data.student;
+            document.getElementById('edit-id').value = student.id;
+            document.getElementById('edit-name').value = student.name;
+            document.getElementById('edit-idSeccion').value = student.idSeccion;
+            document.getElementById('edit-numero-lista').value = student.NumerodeLista ?? '';
+            const modal = new bootstrap.Modal(document.getElementById('modalEditar'));
+            modal.show();
+          } else {
+            showToast('No se pudo obtener la información del estudiante.');
+          }
+        })
+        .catch(error => {
+          console.error('Error:', error);
+          showToast('Ocurrió un error al intentar obtener los datos del estudiante.');
+        });
+    });
   });
-});
-
 
   // Para agregar un nuevo asunto
   let modalAgregar = new bootstrap.Modal(document.getElementById('modalAgregarAsunto'));
@@ -535,7 +820,7 @@ document.querySelectorAll('.btn-editar').forEach(btn => {
       </div>
     </div>
   </div>
- </div>
+</div>
 
 <!-- Modal confirmar restaurar -->
 <div class="modal fade" id="modalConfirmarRestaurar" tabindex="-1" aria-hidden="true">
@@ -554,7 +839,7 @@ document.querySelectorAll('.btn-editar').forEach(btn => {
       </div>
     </div>
   </div>
- </div>
+</div>
 
 <!-- Toast de notificaciones -->
 <div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1080">
@@ -564,7 +849,7 @@ document.querySelectorAll('.btn-editar').forEach(btn => {
       <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
     </div>
   </div>
- </div>
+</div>
 
 <script>
 // Helpers Bootstrap
@@ -596,5 +881,8 @@ document.querySelectorAll('.btn-confirmar-restaurar').forEach(btn => {
     modal.show();
   });
 });
-</script>
 
+//para poner la division de la lista en los modales
+document.getElementById('fin-edit').checked = student.fin == 1;
+
+</script>
