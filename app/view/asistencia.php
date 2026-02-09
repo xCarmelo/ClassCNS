@@ -133,22 +133,28 @@
                 <select name="materia" id="filtroMateria" class="form-control filtro-auto" required>
                     <option value="">Seleccione</option>
                     <?php foreach ($materias as $mat): ?>
-                        <option value="<?= $mat['id'] ?>" <?= (isset($_GET['materia']) && $_GET['materia'] == $mat['id']) ? 'selected' : '' ?>>
+                        <option 
+                            value="<?= $mat['id'] ?>"
+                            data-nombre="<?= htmlspecialchars($mat['name']) ?>"
+                            <?= (isset($_GET['materia']) && $_GET['materia'] == $mat['id']) ? 'selected' : '' ?>
+                        >
                             <?= htmlspecialchars($mat['name']) ?>
                         </option>
                     <?php endforeach; ?>
                 </select>
+            <input type="hidden" name="materia_nombre" id="materiaNombre">
+
             </div>
         </div>
     </form>
 
     <!-- Botón Nueva Asistencia (deshabilitado si faltan filtros) -->
-        <a href="#"
-        class="btn btn-success disabled"
-        id="btnNuevaAsistencia"
-        aria-disabled="true">
-            <i class="bi bi-plus-circle"></i> Nueva asistencia
-        </a>
+<button 
+    id="btnNuevaAsistencia"
+    class="btn btn-success mb-3"
+    <?= !$filtrosCompletos ? 'disabled' : '' ?>>
+    Nueva Asistencia
+</button>
 
 
 
@@ -287,136 +293,60 @@
 </style>
 
 <script>
-// ===============================
-// CONFIG
-// ===============================
+// Guardar y restaurar filtros con localStorage
 const keyPrefix = 'asistencia_';
-const autoLoadKey = 'asistencia_autoloaded';
-
 const seccionEl = document.getElementById('filtroSeccion');
-const corteEl   = document.getElementById('filtroCorte');
+const corteEl = document.getElementById('filtroCorte');
 const materiaEl = document.getElementById('filtroMateria');
-const btnNueva  = document.getElementById('btnNuevaAsistencia');
-const form      = document.getElementById('filtroForm');
+const btnNueva = document.getElementById('btnNuevaAsistencia');
 
-// ===============================
-// GUARDAR FILTROS
-// ===============================
 function saveFiltersToStorage() {
-    if (seccionEl) localStorage.setItem(keyPrefix + 'seccion', seccionEl.value || '');
-    if (corteEl)   localStorage.setItem(keyPrefix + 'corte', corteEl.value || '');
-    if (materiaEl) localStorage.setItem(keyPrefix + 'materia', materiaEl.value || '');
+    localStorage.setItem(keyPrefix + 'seccion', seccionEl.value || '');
+    localStorage.setItem(keyPrefix + 'corte', corteEl.value || '');
+    localStorage.setItem(keyPrefix + 'materia', materiaEl.value || '');
 }
 
-// ===============================
-// RESTAURAR FILTROS
-// ===============================
 function restoreFiltersFromStorage() {
-    let restored = false;
-
     const s = localStorage.getItem(keyPrefix + 'seccion') || '';
     const c = localStorage.getItem(keyPrefix + 'corte') || '';
     const m = localStorage.getItem(keyPrefix + 'materia') || '';
-
-    if (s && seccionEl && !seccionEl.value) {
-        seccionEl.value = s;
-        restored = true;
-    }
-    if (c && corteEl && !corteEl.value) {
-        corteEl.value = c;
-        restored = true;
-    }
-    if (m && materiaEl && !materiaEl.value) {
-        materiaEl.value = m;
-        restored = true;
-    }
-
-    return restored;
+    let shouldSubmit = false;
+    if (s && seccionEl && !seccionEl.value) { seccionEl.value = s; shouldSubmit = true; }
+    if (c && corteEl && !corteEl.value) { corteEl.value = c; shouldSubmit = true; }
+    if (m && materiaEl && !materiaEl.value) { materiaEl.value = m; shouldSubmit = true; }
+    if (shouldSubmit) document.getElementById('filtroForm').submit();
 }
 
-
-// ===============================
-// VALIDAR BOTÓN
-// ===============================
+// Validar botón según filtros
 function validarBotonNuevaAsistencia() {
-    if (!btnNueva) return;
-
-    const completo = seccionEl?.value && corteEl?.value && materiaEl?.value;
-
-    if (completo) {
-        btnNueva.classList.remove('disabled');
-        btnNueva.removeAttribute('aria-disabled');
-
-        const params = new URLSearchParams({
-            seccion: seccionEl.value,
-            corte: corteEl.value,
-            materia: materiaEl.value
-        });
-
-        // Obtener nombres de sección y materia para pasarlos como parámetros
-        const nombreSeccion = seccionEl.options[seccionEl.selectedIndex].text;
-        const nombreMateria = materiaEl.options[materiaEl.selectedIndex].text;
-        
-        params.append('nombre_seccion', nombreSeccion);
-        params.append('nombre_materia', nombreMateria);
-
-        // Usar el controlador, no la vista directamente
-        btnNueva.href = '/app/controller/nuevaAsistenciaController.php?' + params.toString();
-
+    if (seccionEl.value && corteEl.value && materiaEl.value) {
+        btnNueva.disabled = false;
     } else {
-        btnNueva.classList.add('disabled');
-        btnNueva.setAttribute('aria-disabled', 'true');
-        btnNueva.href = '#';
+        btnNueva.disabled = true;
     }
 }
 
-btnNueva.addEventListener('click', function (e) {
-    if (btnNueva.classList.contains('disabled')) {
-        e.preventDefault();
-    }
-});
-
-
-// ===============================
-// restaorar filtros en localstorague
-// ===============================
 window.addEventListener('DOMContentLoaded', () => {
-    const restored = restoreFiltersFromStorage();
+    restoreFiltersFromStorage();
     validarBotonNuevaAsistencia();
-
-    const url = new URL(window.location.href);
-    const tieneFiltrosEnURL =
-        url.searchParams.get('seccion') &&
-        url.searchParams.get('corte') &&
-        url.searchParams.get('materia');
-
-    if (restored && !tieneFiltrosEnURL && !sessionStorage.getItem(autoLoadKey)) {
-        sessionStorage.setItem(autoLoadKey, '1');
-        form.submit();
-    }
 });
 
-
-
-// ===============================
-// CAMBIO DE FILTROS
-// ===============================
+// Envío automático del formulario al cambiar cualquier filtro y guardar
 const filtros = document.querySelectorAll('.filtro-auto');
 filtros.forEach(filtro => {
     filtro.addEventListener('change', function() {
         saveFiltersToStorage();
         validarBotonNuevaAsistencia();
-        form.submit();
+        document.getElementById('filtroForm').submit();
     });
 });
 
-// ===============================
-// PAGINACIÓN
-// ===============================
+// Paginación
 const storageRowsKey = keyPrefix + 'rowsPerPage';
 let rowsPerPage = parseInt(localStorage.getItem(storageRowsKey) || '10', 10) || 10;
 let currentPage = 1;
 
+// Inicializar selector de filas
 const selectRowsPerPage = document.getElementById('selectRowsPerPage');
 if (selectRowsPerPage) {
     selectRowsPerPage.value = String(rowsPerPage);
@@ -430,8 +360,6 @@ if (selectRowsPerPage) {
 
 function aplicarPaginacion() {
     const tabla = document.getElementById('tablaAsistencia');
-    if (!tabla) return;
-
     const tbody = tabla.querySelector('tbody');
     const rows = Array.from(tbody.querySelectorAll('tr'));
     const paginacion = document.getElementById('paginacionAsistencia');
@@ -464,17 +392,14 @@ function aplicarPaginacion() {
 
 window.addEventListener('DOMContentLoaded', aplicarPaginacion);
 
-// ===============================
-// ELIMINAR SESIÓN
-// ===============================
+// Eliminar sesión de asistencia (modal de confirmación)
 document.addEventListener('click', function(e){
     const btn = e.target.closest('.btn-eliminar-sesion');
     if (!btn) return;
-
     const th = btn.closest('.th-sesion');
     const idSesion = th?.dataset.idSesion;
     if (!idSesion) return;
-
+    // Crear modal si no existe
     let modal = document.getElementById('modalEliminarSesion');
     if (!modal) {
         const html = `
@@ -502,9 +427,49 @@ document.addEventListener('click', function(e){
         document.body.insertAdjacentHTML('beforeend', html);
         modal = document.getElementById('modalEliminarSesion');
     }
-
     document.getElementById('inputIdSesion').value = idSesion;
-    new bootstrap.Modal(modal).show();
+    const bsModal = new bootstrap.Modal(modal);
+    bsModal.show();
 });
-</script>
 
+
+
+
+//para enviar el nombre de la materia
+function actualizarNombreMateria() {
+    const selectedOption = materiaEl.options[materiaEl.selectedIndex];
+    document.getElementById('materiaNombre').value =
+        selectedOption?.dataset?.nombre || '';
+}
+
+
+materiaEl.addEventListener('change', function () {
+    actualizarNombreMateria();
+});
+
+
+window.addEventListener('DOMContentLoaded', () => {
+    actualizarNombreMateria();
+});
+
+btnNueva.addEventListener('click', function () {
+    const seccion = seccionEl.value;
+    const corte = corteEl.value;
+    const materia = materiaEl.value;
+
+    const selectedOption = materiaEl.options[materiaEl.selectedIndex];
+    const materiaNombre = selectedOption?.dataset?.nombre || '';
+
+    const url =
+        'nuevaAsistenciaController.php' +
+        '?seccion=' + encodeURIComponent(seccion) +
+        '&corte=' + encodeURIComponent(corte) +
+        '&materia=' + encodeURIComponent(materia) +
+        '&materia_nombre=' + encodeURIComponent(materiaNombre);
+
+    window.location.href = url;
+});
+
+
+
+</script>
