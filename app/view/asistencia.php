@@ -236,9 +236,9 @@
         $materiaSeleccionada = isset($_GET['materia']) ? intval($_GET['materia']) : null;
 
         // ✅ id real de Informática en tu BD
-        $idInformatica = 2;
+        $idInformatica = $materiaBD ? intval($materiaBD['id']) : null;
 
-        foreach ($estudiantes as $idStudent => $est):
+        foreach ($estudiantes as $idStudent => $est): 
         ?>
             <tr class="<?= (isset($est['fin']) && $est['fin'] == 1) ? 'table-danger' : '' ?>">
                 <td><?= htmlspecialchars($est['NumerodeLista']) ?></td>

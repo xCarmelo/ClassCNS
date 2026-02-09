@@ -44,4 +44,20 @@ class Materia {
         $stmt = self::$pdo->prepare($sql);
         return $stmt->execute([':id' => $id]);
     }
+
+    public function findByName(string $name): ?array {
+    $sql = "SELECT * 
+            FROM `" . self::$table . "` 
+            WHERE LOWER(name) = LOWER(:name)
+            LIMIT 1";
+
+    $stmt = self::$pdo->prepare($sql);
+    $stmt->execute([
+        ':name' => trim($name)
+    ]);
+
+    $r = $stmt->fetch(PDO::FETCH_ASSOC);
+    return $r ?: null;
+}
+
 }

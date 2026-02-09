@@ -127,6 +127,36 @@ if (isset($_SESSION['status'])):
 </div>
 <?php endif; ?>
 
+
+<!-- Modal Confirmar Eliminación Sección -->
+<div class="modal fade" id="modalConfirmEliminarSeccion" tabindex="-1" aria-labelledby="modalConfirmEliminarSeccionLabel" aria-hidden="true">
+  <div class="modal-dialog">
+    <div class="modal-content">
+      <div class="modal-header bg-danger text-white">
+        <h5 class="modal-title" id="modalConfirmEliminarSeccionLabel">Eliminar sección</h5>
+        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
+      </div>
+      <div class="modal-body">
+        ¿Estás seguro de eliminar esta sección?
+      </div>
+      <div class="modal-footer">
+        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
+        <button type="button" class="btn btn-danger" id="btnConfirmEliminarSeccion">Eliminar</button>
+      </div>
+    </div>
+  </div>
+</div>
+
+<!-- Toast Notificaciones Sección -->
+<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1080;">
+  <div id="toastSeccion" class="toast align-items-center text-bg-primary border-0" role="status" aria-live="polite" aria-atomic="true">
+    <div class="d-flex">
+      <div class="toast-body" id="toastSeccionBody">Notificación</div>
+      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
+    </div>
+  </div>
+</div>
+
 <?php require_once "../view/footer.php"; ?>
 
 <script>
@@ -239,32 +269,3 @@ if (isset($_SESSION['status'])):
     }
   });
 </script>
-
-<!-- Modal Confirmar Eliminación Sección -->
-<div class="modal fade" id="modalConfirmEliminarSeccion" tabindex="-1" aria-labelledby="modalConfirmEliminarSeccionLabel" aria-hidden="true">
-  <div class="modal-dialog">
-    <div class="modal-content">
-      <div class="modal-header bg-danger text-white">
-        <h5 class="modal-title" id="modalConfirmEliminarSeccionLabel">Eliminar sección</h5>
-        <button type="button" class="btn-close btn-close-white" data-bs-dismiss="modal" aria-label="Cerrar"></button>
-      </div>
-      <div class="modal-body">
-        ¿Estás seguro de eliminar esta sección?
-      </div>
-      <div class="modal-footer">
-        <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Cancelar</button>
-        <button type="button" class="btn btn-danger" id="btnConfirmEliminarSeccion">Eliminar</button>
-      </div>
-    </div>
-  </div>
-</div>
-
-<!-- Toast Notificaciones Sección -->
-<div class="position-fixed bottom-0 end-0 p-3" style="z-index: 1080;">
-  <div id="toastSeccion" class="toast align-items-center text-bg-primary border-0" role="status" aria-live="polite" aria-atomic="true">
-    <div class="d-flex">
-      <div class="toast-body" id="toastSeccionBody">Notificación</div>
-      <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast" aria-label="Close"></button>
-    </div>
-  </div>
-</div>

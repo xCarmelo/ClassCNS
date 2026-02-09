@@ -7,7 +7,7 @@ require_once __DIR__ . '/../model/materia.php';
 require_once __DIR__ . '/../model/corte.php';
 require_once __DIR__ . '/../model/tipoAsistencia.php';
 
-$db = Database::getInstance();
+$db = Database::getInstance(); 
 $pdo = $db->getConnection();
 
 // Asegurar sesión para uso de $_SESSION
@@ -17,6 +17,9 @@ $seccionModel = new Seccion();
 $materiaModel = new Materia();
 $corteModel = new Corte();
 $tipoAsistenciaModel = new TipoAsistencia($pdo);
+
+$materiaBD = $materiaModel->findByName("Informática");
+
 
 // Obtener filtros
 $filtros = [
