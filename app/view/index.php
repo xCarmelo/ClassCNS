@@ -145,11 +145,15 @@ nav.navbar { margin-bottom: 0rem !important; }
         <a href="/app/controller/NotasController.php">Ir a Calificaciones</a>
     </div>
     <div class="home-card">
-        <i class="bi bi-calendar-check"></i>
-        <h3>Asistencia</h3>
-        <p>Registra y consulta la asistencia de los estudiantes.</p>
-        <a href="/app/view/asistencia.php">Ir a Asistencia</a>
-    </div>
+    <i class="bi bi-hdd-stack-fill"></i>
+    <h3>Copias de seguridad</h3>
+    <p>Respalda y restaura toda la información del sistema.</p>
+    <a href="/app/controller/BackupController.php">
+        Ir a Respaldos
+    </a>
+</div>
+
+
 </div>
 
 <!-- Modal de Confirmación para Vaciar Base de Datos -->

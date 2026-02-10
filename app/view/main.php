@@ -39,6 +39,14 @@
             <li><a class="dropdown-item" href="/app/controller/getIndicadorDeLogroController.php"><i class="bi bi-bar-chart-line-fill"></i> Indicadores</a></li>
           </ul>
         </li>
+        <li class="nav-item">
+        <a href="/app/controller/BackupController.php"
+          class="nav-link fs-5 fw-bold">
+          <i class="bi bi-hdd-stack-fill"></i>
+          Respaldos
+        </a>
+      </li>
+
         <!--<li class="nav-item">
           <a href="/app/controller/getAudioController.php" class="nav-link fs-5 fw-bold"><i class="bi bi-volume-up-fill"></i> Texto a voz</a>
         </li>
